@@ -1,0 +1,69 @@
+{
+	
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+	
+	{
+		"path" : "pages/request_other/request_other",
+		"style" : 
+		{
+			"navigationBarTitleText" : "request_other",
+			"enablePullDownRefresh": false
+		}
+	},
+	
+		{
+			"path" : "pages/chicken-input/chicken-input",
+			"style" : 
+			{
+				"navigationBarTitleText" : "小鸡案例"
+			}
+		},
+		
+		{
+			"path" : "pages/request_example/request_example",
+			"style" : 
+			{
+				"navigationBarTitleText" : "request_example",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path" : "pages/person-view/person-view",
+			"style" : 
+			{
+				"navigationBarTitleText" : "person-view"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "green",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#55ffff",
+		"backgroundColor": "#F8F8F8",
+		"enablePullDownRefresh": true
+	},
+	"tabBar": {
+			"color": "black",
+			"selectedColor": "#aa0000",			
+			"list": [
+				{
+					"pagePath": "pages/request_other/request_other",
+					"text": "首页",
+					"iconPath": "/static/tabbar/home.png",
+					"selectedIconPath": "/static/tabbar/home-h.png"
+				},{
+					"pagePath": "pages/request_example/request_example",
+					"text": "计数",
+					"iconPath": "/static/tabbar/classify.png",
+					"selectedIconPath": "/static/tabbar/classify-h.png"
+				},{
+					"pagePath": "pages/chicken-input/chicken-input",
+					"text": "我的",
+					"iconPath": "/static/tabbar/user.png",
+					"selectedIconPath": "/static/tabbar/user-h.png"
+				}
+			]
+		},
+
+	"uniIdRouter": {}
+}
