@@ -22,4 +22,6 @@ public class LocationInfoVO {
     private String information;
     // 图片集
     private List<String> images;
+    // 副地点
+    private List<SubLocation> subLocations;
 }

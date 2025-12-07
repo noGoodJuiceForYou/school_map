@@ -20,9 +20,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(tokenInterceptor)
-                .addPathPatterns("/**")  //拦截所有请求
-                .excludePathPatterns("/map/login")
-                .excludePathPatterns("/map/register");
+//        registry.addInterceptor(tokenInterceptor)
+//                .addPathPatterns("/**")  //拦截所有请求
+//                .excludePathPatterns("/map/login")
+//                .excludePathPatterns("/map/register");
     }
 }
