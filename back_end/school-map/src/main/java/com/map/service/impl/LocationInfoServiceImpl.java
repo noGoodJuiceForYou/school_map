@@ -29,6 +29,12 @@ public class LocationInfoServiceImpl implements LocationInfoService {
 
         List<SubLocation> subLocations = locationInfoMapper.getSubLocations(id);
 
+        for (SubLocation subLocation : subLocations) {
+            Long subId = subLocation.getId();
+            List<String> subImages = locationInfoMapper.getSubImages(subId);
+            subLocation.setImages(subImages);
+        }
+
         LocationInfoVO locationInfoVO = LocationInfoVO.builder()
                 .name(locationInfo.getName())
                 .description(locationInfo.getDescription())

@@ -25,6 +25,17 @@ public interface LocationInfoMapper {
     @Select("select url from location_images where location_id = #{id}")
     List<String> getImages(Long id);
 
+    /**
+     * 获取地点副地点
+     * @param id
+     */
     @Select("select * from sub_location where location_id = #{id}")
     List<SubLocation> getSubLocations(Long id);
+
+    /**
+     * 获取地点副地点图片
+     * @param id
+     */
+    @Select("select url from sub_location_images where sub_location_id = #{id}")
+    List<String> getSubImages(Long id);
 }
