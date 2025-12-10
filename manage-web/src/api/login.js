@@ -1,0 +1,26 @@
+import request from '@/utils/request'
+
+// 登录方法
+export function login(username, password) {
+  const data = {
+    username,
+    password
+  }
+  return request({
+    url: '/map/login',
+    headers: {
+      isToken: false
+    },
+    method: 'post',
+    data: data
+  })
+}
+
+// 获取用户详细信息
+export function getInfo() {
+  return request({
+    url: '/getInfo',
+    method: 'get'
+  })
+}
+
