@@ -85,7 +85,9 @@ watch(visible, (value) => {
 })
 
 onMounted(() => {
+  // 先添加固定标签
   initTags()
+  // 添加当前路由标签
   addTags()
 })
 
@@ -146,10 +148,24 @@ function filterAffixTags(routes, basePath = '') {
 function initTags() {
   const res = filterAffixTags(routes.value)
   affixTags.value = res
+  
+  // 只添加缺失的固定标签，不删除现有的非固定标签
+  const tagsViewStore = useTagsViewStore()
+  
+  // 遍历固定标签列表
   for (const tag of res) {
     // Must have tag name
     if (tag.name) {
-       useTagsViewStore().addVisitedView(tag)
+      // 检查是否已经存在该固定标签
+      const exists = tagsViewStore.visitedViews.some(v => {
+        // 对于固定标签，只需要检查path是否匹配
+        return v.path === tag.path
+      })
+      
+      // 如果不存在，才添加
+      if (!exists) {
+        tagsViewStore.addVisitedView(tag)
+      }
     }
   }
 }

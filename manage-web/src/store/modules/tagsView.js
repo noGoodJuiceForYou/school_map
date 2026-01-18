@@ -1,13 +1,44 @@
 import { defineStore } from 'pinia'
 
+// 从本地存储获取标签状态
+function getVisitedViewsFromStorage() {
+  try {
+    const stored = localStorage.getItem('visitedViews')
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (e) {
+    console.error('Failed to get visitedViews from localStorage:', e)
+  }
+  return []
+}
+
+// 保存标签状态到本地存储
+function saveVisitedViewsToStorage(views) {
+  try {
+    localStorage.setItem('visitedViews', JSON.stringify(views))
+  } catch (e) {
+    console.error('Failed to save visitedViews to localStorage:', e)
+  }
+}
+
 const useTagsViewStore = defineStore(
   'tags-view',
   {
     state: () => ({
-      visitedViews: [],
+      visitedViews: getVisitedViewsFromStorage(),
       cachedViews: [],
       iframeViews: []
     }),
+    watch: {
+      // 监听visitedViews变化，自动保存到本地存储
+      visitedViews: {
+        handler(newVal) {
+          saveVisitedViewsToStorage(newVal)
+        },
+        deep: true
+      }
+    },
     actions: {
       addView(view) {
         // 确保 view 对象包含所有必要信息
@@ -31,27 +62,43 @@ const useTagsViewStore = defineStore(
         )
       },
       addVisitedView(view) {
-        // 确保使用完整路径进行匹配
-        const fullPath = view.fullPath || view.path
-        // 修复首页重复问题：将空路径和/index视为同一个页面
-        const normalizedPath = fullPath === '' || fullPath === '/' ? '/index' : fullPath
-        const normalizedViewPath = view.path === '' || view.path === '/' ? '/index' : view.path
+        // 确保 view 对象有效
+        if (!view || !view.path) return
         
-        // 检查是否已存在相同路径的标签页，包括首页的特殊处理
-        if (this.visitedViews.some(v => {
-          const vPath = v.path === '' || v.path === '/' ? '/index' : v.path
-          const vFullPath = v.fullPath === '' || v.fullPath === '/' ? '/index' : v.fullPath
-          return vPath === normalizedPath || vFullPath === normalizedPath || vPath === normalizedViewPath
-        })) return
+        // 标准化路径：将空路径、/和/index统一处理为/index
+        const normalizedPath = (view.path === '' || view.path === '/' || view.path === '/index') ? '/index' : view.path;
+        const normalizedFullPath = (view.fullPath === '' || view.fullPath === '/' || view.fullPath === '/index') ? '/index' : (view.fullPath || view.path);
         
+        // 检查是否已存在相同路径的标签页（包括不同表示形式的首页）
+        const isDuplicate = this.visitedViews.some(existingView => {
+          // 标准化现有标签的路径
+          const existingNormalizedPath = (existingView.path === '' || existingView.path === '/' || existingView.path === '/index') ? '/index' : existingView.path;
+          const existingNormalizedFullPath = (existingView.fullPath === '' || existingView.fullPath === '/' || existingView.fullPath === '/index') ? '/index' : (existingView.fullPath || existingView.path);
+          
+          // 检查路径是否匹配
+          return existingNormalizedPath === normalizedPath || 
+                 existingNormalizedFullPath === normalizedFullPath ||
+                 existingNormalizedPath === normalizedFullPath ||
+                 existingNormalizedFullPath === normalizedPath;
+        });
+        
+        // 如果是重复标签，直接返回，不添加
+        if (isDuplicate) {
+          return;
+        }
+        
+        // 标准化最终路径，避免后续匹配问题
+        const finalPath = normalizedPath;
+        const finalFullPath = normalizedFullPath;
+        
+        // 添加新标签
         this.visitedViews.push(
           Object.assign({}, view, {
             title: view.meta.title || 'no-name',
-            // 统一首页路径为/index，避免重复
-            path: normalizedViewPath,
-            fullPath: normalizedPath
+            path: finalPath,
+            fullPath: finalFullPath
           })
-        )
+        );
       },
       addCachedView(view) {
         if (this.cachedViews.includes(view.name)) return
