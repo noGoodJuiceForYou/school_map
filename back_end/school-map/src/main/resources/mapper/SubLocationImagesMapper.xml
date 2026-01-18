@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.map.mapper.SubLocationImagesMapper">
+
+
+    <delete id="deleteSubLocationImagesByLocationId">
+        delete from sub_location_images where sub_location_id in
+        (
+            select id from sub_location where location_id in
+            <foreach collection="ids" item="id" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+        )
+    </delete>
+    <delete id="deleteById">
+        delete from sub_location_images where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="deleteBySubLocationId">
+        delete from sub_location_images where sub_location_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

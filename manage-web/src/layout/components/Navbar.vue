@@ -83,8 +83,8 @@ function logout() {
     type: 'warning'
   }).then(() => {
     userStore.logOut().then(() => {
-      // 使用路由跳转而不是直接修改location
-      router.push('/login')
+      // 使用路由跳转而不是直接修改location，跳转到正确的登录页路径
+      router.push('/')
     })
   }).catch(() => { })
 }

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.map.mapper.LocationInfoMapper">
+
+    <update id="updateLocation">
+        update location_info
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="description != null">
+                description = #{description},
+            </if>
+            <if test="information != null">
+                information = #{information},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteLocation">
+        delete from location_info where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="pageQuery" resultType="com.map.pojo.VO.UserLocationInfoVO">
+        select * from location_info
+        <where>
+            <if test="name != null">
+                and name like concat('%',#{name},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

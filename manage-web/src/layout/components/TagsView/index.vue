@@ -74,7 +74,7 @@ const tagsIcon = computed(() => useSettingsStore().tagsIcon)
 watch(route, () => {
   addTags()
   moveToCurrentTag()
-})
+}, { deep: true })
 
 watch(visible, (value) => {
   if (value) {
@@ -155,9 +155,12 @@ function initTags() {
 }
 
 function addTags() {
-  const { name } = route
-  if (name) {
-    useTagsViewStore().addView(route)
+  // 使用完整的 route 对象，确保包含所有必要信息
+  if (route.path) {
+    const view = {
+      ...route
+    }
+    useTagsViewStore().addView(view)
   }
 }
 
@@ -176,14 +179,16 @@ function moveToCurrentTag() {
 }
 
 function refreshSelectedTag(view) {
-  proxy.$tab.refreshPage(view)
+  // 刷新页面逻辑
   if (route.meta.link) {
     useTagsViewStore().delIframeView(route)
   }
+  // 重新加载当前页面
+  router.replace({ path: '/redirect' + view.fullPath })
 }
 
 function closeSelectedTag(view) {
-  proxy.$tab.closePage(view).then(({ visitedViews }) => {
+  useTagsViewStore().delView(view).then(({ visitedViews }) => {
     if (isActive(view)) {
       toLastView(visitedViews, view)
     }
@@ -191,7 +196,7 @@ function closeSelectedTag(view) {
 }
 
 function closeRightTags() {
-  proxy.$tab.closeRightPage(selectedTag.value).then(visitedViews => {
+  useTagsViewStore().delRightTags(selectedTag.value).then(visitedViews => {
     if (!visitedViews.find(i => i.fullPath === route.fullPath)) {
       toLastView(visitedViews)
     }
@@ -199,7 +204,7 @@ function closeRightTags() {
 }
 
 function closeLeftTags() {
-  proxy.$tab.closeLeftPage(selectedTag.value).then(visitedViews => {
+  useTagsViewStore().delLeftTags(selectedTag.value).then(visitedViews => {
     if (!visitedViews.find(i => i.fullPath === route.fullPath)) {
       toLastView(visitedViews)
     }
@@ -208,13 +213,13 @@ function closeLeftTags() {
 
 function closeOthersTags() {
   router.push(selectedTag.value).catch(() => { })
-  proxy.$tab.closeOtherPage(selectedTag.value).then(() => {
+  useTagsViewStore().delOthersViews(selectedTag.value).then(() => {
     moveToCurrentTag()
   })
 }
 
 function closeAllTags(view) {
-  proxy.$tab.closeAllPage().then(({ visitedViews }) => {
+  useTagsViewStore().delAllViews(view).then(({ visitedViews }) => {
     if (affixTags.value.some(tag => tag.path === route.path)) {
       return
     }

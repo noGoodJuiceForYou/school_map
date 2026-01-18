@@ -20,7 +20,7 @@
         :key="child.path + index"
         :is-nest="true"
         :item="child"
-        :base-path="resolvePath(child.path)"
+        :base-path="item.path"
         class="nest-menu"
       />
     </el-sub-menu>
@@ -60,6 +60,12 @@ function hasOneShowingChild(children = [], parent) {
   if (!children) {
     children = []
   }
+  
+  // 如果设置了alwaysShow，直接返回false，显示父菜单和所有子菜单
+  if (parent.alwaysShow) {
+    return false
+  }
+  
   const showingChildren = children.filter(item => {
     if (item.hidden) {
       return false
@@ -89,11 +95,22 @@ function resolvePath(routePath, routeQuery) {
   if (isExternal(props.basePath)) {
     return props.basePath
   }
+  
+  // 确保生成正确的嵌套路由路径
+  let path = ''
+  if (routePath.startsWith('/')) {
+    // 如果是绝对路径，直接使用
+    path = routePath
+  } else {
+    // 如果是相对路径，与 basePath 合并
+    path = getNormalPath(props.basePath + '/' + routePath)
+  }
+  
   if (routeQuery) {
     let query = JSON.parse(routeQuery)
-    return { path: getNormalPath(props.basePath + '/' + routePath), query: query }
+    return { path: path, query: query }
   }
-  return getNormalPath(props.basePath + '/' + routePath)
+  return path
 }
 
 function hasTitle(title){

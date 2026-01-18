@@ -10,7 +10,7 @@ import useSettingsStore from '@/store/modules/settings'
 
 NProgress.configure({ showSpinner: false })
 
-const whiteList = ['/login', '/register']
+const whiteList = ['/', '/login', '/register']
 
 const isWhiteList = (path) => {
   return whiteList.some(pattern => isPathMatch(pattern, path))
@@ -22,8 +22,9 @@ router.beforeEach((to, from, next) => {
   if (getToken()) {
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
     /* has token*/
-    if (to.path === '/login') {
-      next({ path: '/' })
+    if (to.path === '/') {
+      // 如果已登录，访问登录页面(/)，重定向到首页
+      next({ path: '/index' })
       NProgress.done()
     } else if (isWhiteList(to.path)) {
       next()
@@ -45,15 +46,15 @@ router.beforeEach((to, from, next) => {
       }
     }
   } else {
-    // 没有token
-    if (isWhiteList(to.path)) {
-      // 在免登录白名单，直接进入
-      next()
-    } else {
-      next(`/login?redirect=${to.fullPath}`) // 否则全部重定向到登录页
-      NProgress.done()
+      // 没有token
+      if (isWhiteList(to.path)) {
+        // 在免登录白名单，直接进入
+        next()
+      } else {
+        next(`/?redirect=${to.fullPath}`) // 否则全部重定向到登录页(/)
+        NProgress.done()
+      }
     }
-  }
 })
 
 router.afterEach(() => {

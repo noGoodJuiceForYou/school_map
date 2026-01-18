@@ -7,7 +7,7 @@ export function login(username, password) {
     password
   }
   return request({
-    url: '/map/login',
+    url: '/admin/login',
     headers: {
       isToken: false
     },

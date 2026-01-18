@@ -1,4 +1,4 @@
-package com.map.controller;
+package com.map.controller.user;
 
 
 import com.map.pojo.Result;
@@ -17,7 +17,7 @@ public class RegisterController {
     @Autowired
     private UserService userService;
 
-    @PostMapping("/map/register")
+    @PostMapping("/user/register")
     public Result register(@RequestBody User user) {
         log.info("注册：{}", user);
         userService.register(user);

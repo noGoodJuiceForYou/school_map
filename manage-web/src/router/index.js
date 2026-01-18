@@ -38,7 +38,7 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/login',
+    path: '/',
     component: () => import('@/views/login'),
     hidden: true
   },
@@ -52,16 +52,46 @@ export const constantRoutes = [
     component: () => import('@/views/error/401'),
     hidden: true
   },
-  {
-    path: '',
+  { 
+    path: '/index',
     component: Layout,
     redirect: '/index',
     children: [
-      {
-        path: '/index',
+      { 
+        path: '',
         component: () => import('@/views/index'),
         name: 'Index',
         meta: { title: '首页', icon: 'dashboard', affix: true }
+      }
+    ]
+  },
+  {
+    path: '/location',
+    component: Layout,
+    redirect: '/location/info',
+    name: 'Location',
+    meta: { title: '地点管理', icon: 'location' },
+    children: [
+      {
+        path: 'info',
+        component: () => import('@/views/location_info/index.vue'),
+        name: 'LocationInfo',
+        meta: { title: '地点信息', icon: 'info' }
+      }
+    ]
+  },
+  {
+    path: '/sublocation',
+    component: Layout,
+    redirect: '/sublocation/info',
+    name: 'Sublocation',
+    meta: { title: '子地点管理', icon: 'tree' },
+    children: [
+      {
+        path: 'info',
+        component: () => import('@/views/sub_location/index.vue'),
+        name: 'SublocationInfo',
+        meta: { title: '子地点', icon: 'tree' }
       }
     ]
   }

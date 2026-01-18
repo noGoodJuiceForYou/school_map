@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 import defaultSettings from '@/settings'
 import { useDark, useToggle } from '@vueuse/core'
 import { useDynamicTitle } from '@/utils/dynamicTitle'

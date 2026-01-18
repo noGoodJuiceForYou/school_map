@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 import router from '@/router'
 import { ElMessageBox } from 'element-plus'
 import { login, getInfo } from '@/api/login'
@@ -23,19 +24,13 @@ const useUserStore = defineStore(
         try {
           const username = loginData.username.trim()
           const password = loginData.password
-          const response = await login(username, password)
+          const data = await login(username, password)
           
-          // 检查后端返回的响应
-          if (response.code === 1) {
-            // 成功登录
-            const token = response.data.token
-            setToken(token)
-            this.token = token
-            return response
-          } else {
-            // 登录失败，抛出错误
-            throw new Error(response.msg || '登录失败')
-          }
+          // 成功登录 - 响应拦截器已处理，直接返回token
+          const token = data.token
+          setToken(token)
+          this.token = token
+          return data
         } catch (error) {
           // 如果是网络错误或其他错误，也需要处理
           console.error('Login error:', error)

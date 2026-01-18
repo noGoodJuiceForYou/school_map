@@ -1,3 +1,5 @@
+import { defineStore } from 'pinia'
+
 const useTagsViewStore = defineStore(
   'tags-view',
   {
@@ -8,8 +10,17 @@ const useTagsViewStore = defineStore(
     }),
     actions: {
       addView(view) {
-        this.addVisitedView(view)
-        this.addCachedView(view)
+        // 确保 view 对象包含所有必要信息
+        if (!view || !view.path) return
+        
+        // 确保使用完整的 view 对象，包含 name 属性
+        const fullView = {
+          ...view,
+          name: view.name || view.path
+        }
+        
+        this.addVisitedView(fullView)
+        this.addCachedView(fullView)
       },
       addIframeView(view) {
         if (this.iframeViews.some(v => v.path === view.path)) return
@@ -20,10 +31,25 @@ const useTagsViewStore = defineStore(
         )
       },
       addVisitedView(view) {
-        if (this.visitedViews.some(v => v.path === view.path)) return
+        // 确保使用完整路径进行匹配
+        const fullPath = view.fullPath || view.path
+        // 修复首页重复问题：将空路径和/index视为同一个页面
+        const normalizedPath = fullPath === '' || fullPath === '/' ? '/index' : fullPath
+        const normalizedViewPath = view.path === '' || view.path === '/' ? '/index' : view.path
+        
+        // 检查是否已存在相同路径的标签页，包括首页的特殊处理
+        if (this.visitedViews.some(v => {
+          const vPath = v.path === '' || v.path === '/' ? '/index' : v.path
+          const vFullPath = v.fullPath === '' || v.fullPath === '/' ? '/index' : v.fullPath
+          return vPath === normalizedPath || vFullPath === normalizedPath || vPath === normalizedViewPath
+        })) return
+        
         this.visitedViews.push(
           Object.assign({}, view, {
-            title: view.meta.title || 'no-name'
+            title: view.meta.title || 'no-name',
+            // 统一首页路径为/index，避免重复
+            path: normalizedViewPath,
+            fullPath: normalizedPath
           })
         )
       },
@@ -123,11 +149,9 @@ const useTagsViewStore = defineStore(
         })
       },
       updateVisitedView(view) {
-        for (let v of this.visitedViews) {
-          if (v.path === view.path) {
-            v = Object.assign(v, view)
-            break
-          }
+        const index = this.visitedViews.findIndex(v => v.path === view.path)
+        if (index > -1) {
+          this.visitedViews[index] = Object.assign({}, this.visitedViews[index], view)
         }
       },
       delRightTags(view) {

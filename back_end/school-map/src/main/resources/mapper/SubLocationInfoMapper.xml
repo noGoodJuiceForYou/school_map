@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.map.mapper.SubLocationInfoMapper">
+    <update id="updateSubLocation">
+        update sub_location
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="locationId != null">
+                location_id = #{locationId},
+            </if>
+            <if test="introduction != null">
+                introduction = #{introduction},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteSubLocationByLocationId">
+        delete from sub_location where location_id in
+        <foreach collection="ids" item="id" separator="," close=")" open="(">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteById">
+        delete from sub_location where id in
+        <foreach collection="ids" item="id" separator="," close=")" open="(">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="pageQuery" resultType="com.map.pojo.VO.SubLocationInfoVO">
+        select sl.id, sl.name name, l.name locationName, introduction from sub_location sl join location_info l on sl.location_id = l.id
+        <where>
+            <if test="name != null">
+                and sl.name like concat('%',#{name},'%')
+            </if>
+            <if test="locationName != null">
+                and l.name like concat('%',#{locationName},'%')
+            </if>
+        </where>
+    </select>
+    <select id="getSubLocationInfo" resultType="com.map.pojo.VO.SubLocationInfoVO">
+        select sl.id, sl.name name, l.name locationName, introduction from sub_location sl join location_info l on sl.location_id = l.id where sl.id = #{id}
+    </select>
+</mapper>

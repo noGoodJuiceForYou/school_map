@@ -11,18 +11,23 @@ function tansParams(params) {
   let result = ''
   for (const propName of Object.keys(params)) {
     const value = params[propName]
-    var part = encodeURIComponent(propName) + '='
     if (value !== null && value !== '' && typeof (value) !== 'undefined') {
-      if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        // 处理数组参数，格式：ids=1&ids=2&ids=3
+        for (const item of value) {
+          result += encodeURIComponent(propName) + '=' + encodeURIComponent(item) + '&'
+        }
+      } else if (typeof value === 'object') {
+        // 处理对象参数
         for (const key of Object.keys(value)) {
           if (value[key] !== null && value[key] !== '' && typeof (value[key]) !== 'undefined') {
-            const params = propName + '[' + key + ']'
-            var subPart = encodeURIComponent(params) + '='
-            result += subPart + encodeURIComponent(value[key]) + '&'
+            const subProp = propName + '[' + key + ']'
+            result += encodeURIComponent(subProp) + '=' + encodeURIComponent(value[key]) + '&'
           }
         }
       } else {
-        result += part + encodeURIComponent(value) + '&'
+        // 处理普通参数
+        result += encodeURIComponent(propName) + '=' + encodeURIComponent(value) + '&'
       }
     }
   }
@@ -54,10 +59,10 @@ service.interceptors.request.use(config => {
   // 是否需要防止数据重复提交
   const isRepeatSubmit = (config.headers || {}).repeatSubmit === false
   if (getToken() && !isToken) {
-    config.headers['Authorization'] = 'Bearer ' + getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
+    config.headers['token'] = getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
   }
-  // get请求映射params参数
-  if (config.method === 'get' && config.params) {
+  // get和delete请求映射params参数
+  if ((config.method === 'get' || config.method === 'delete') && config.params) {
     let url = config.url + '?' + tansParams(config.params)
     url = url.slice(0, -1)
     config.params = {}
@@ -131,7 +136,7 @@ service.interceptors.response.use(res => {
       ElNotification.error({ title: msg })
       return Promise.reject('error')
     } else {
-      return  Promise.resolve(res.data)
+      return  Promise.resolve(res.data.data)
     }
   },
   error => {

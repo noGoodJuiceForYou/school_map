@@ -30,8 +30,8 @@ import { parseTime } from '@/utils/index'
 
 // 实现其他常用工具函数
 function resetForm(refName) {
-  if (refName) {
-    refName.resetFields()
+  if (this.$refs[refName]) {
+    this.$refs[refName].resetFields()
   }
 }
 

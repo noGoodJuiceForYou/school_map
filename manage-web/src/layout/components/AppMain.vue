@@ -3,7 +3,7 @@
     <router-view v-slot="{ Component, route }">
       <transition name="fade-transform" mode="out-in">
         <keep-alive :include="tagsViewStore.cachedViews">
-          <component v-if="!route.meta.link" :is="Component" :key="route.path"/>
+          <component :is="Component" :key="route.fullPath" v-if="!route.meta.link" />
         </keep-alive>
       </transition>
     </router-view>
@@ -13,6 +13,8 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import copyright from "./Copyright/index"
 import iframeToggle from "./IframeToggle/index"
 import useTagsViewStore from '@/store/modules/tagsView'
@@ -20,71 +22,9 @@ import useTagsViewStore from '@/store/modules/tagsView'
 const route = useRoute()
 const tagsViewStore = useTagsViewStore()
 
+// 移除未定义的 addIframe 函数调用
 onMounted(() => {
-  addIframe()
+  // 组件挂载时的逻辑
 })
-
-watchEffect(() => {
-  addIframe()
-})
-
-function addIframe() {
-  if (route.meta.link) {
-    useTagsViewStore().addIframeView(route)
-  }
-}
 </script>
 
-<style lang="scss" scoped>
-.app-main {
-  /* 50= navbar  50  */
-  min-height: calc(100vh - 50px);
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.fixed-header + .app-main {
-  overflow-y: auto;
-  scrollbar-gutter: auto;
-  height: calc(100vh - 50px);
-  min-height: 0px;
-}
-
-.app-main:has(.copyright) {
-  padding-bottom: 36px;
-}
-
-.fixed-header + .app-main {
-  margin-top: 50px;
-}
-
-.hasTagsView {
-  .app-main {
-    /* 84 = navbar + tags-view = 50 + 34 */
-    min-height: calc(100vh - 84px);
-  }
-
-  .fixed-header + .app-main {
-    margin-top: 84px;
-    height: calc(100vh - 84px);
-    min-height: 0px;
-  }
-}
-</style>
-
-<style lang="scss">
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: #c0c0c0;
-  border-radius: 3px;
-}
-</style>

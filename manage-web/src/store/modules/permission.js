@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 import auth from '@/plugins/auth'
 import router, { constantRoutes } from '@/router'
 import Layout from '@/layout/index'

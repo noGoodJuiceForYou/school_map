@@ -1,9 +1,12 @@
 package com.map.mapper;
 
-import com.map.pojo.LocationImages;
+import com.github.pagehelper.Page;
+import com.map.pojo.DTO.LocationInfoDTO;
+import com.map.pojo.DTO.LocationPageQueryDTO;
 import com.map.pojo.LocationInfo;
-import com.map.pojo.LocationInfoVO;
-import com.map.pojo.SubLocation;
+import com.map.pojo.VO.AdminLocationInfoVO;
+import com.map.pojo.VO.UserLocationInfoVO;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -12,30 +15,44 @@ import java.util.List;
 @Mapper
 public interface LocationInfoMapper {
     /**
-     * 获取地点信息
+     * 根据id获取地点信息
      * @param id
      */
     @Select("select * from location_info where id = #{id}")
     LocationInfo getInfo(Long id);
 
     /**
-     * 获取地点图片
-     * @param id
+     * 分页获取所有地点列表
      */
-    @Select("select url from location_images where location_id = #{id}")
-    List<String> getImages(Long id);
+    Page<UserLocationInfoVO> pageQuery(LocationPageQueryDTO query);
+
 
     /**
-     * 获取地点副地点
-     * @param id
+     * 新增父地点
      */
-    @Select("select * from sub_location where location_id = #{id}")
-    List<SubLocation> getSubLocations(Long id);
+    @Insert("insert into location_info(name, description, information) values(#{name}, #{description}, #{information})")
+    void addLocation(LocationInfoDTO locationInfoDTO);
 
     /**
-     * 获取地点副地点图片
+     * 更新父地点信息
+     */
+    void updateLocation(LocationInfoDTO locationInfoDTO);
+
+    /**
+     * 删除父地点信息
+     */
+    void deleteLocation(List<Long> ids);
+
+    /**
+     * 根据id获取父地点信息
      * @param id
      */
-    @Select("select url from sub_location_images where sub_location_id = #{id}")
-    List<String> getSubImages(Long id);
+    @Select("select * from location_info where id = #{id}")
+    AdminLocationInfoVO getAdminInfo(Long id);
+
+    /**
+     * 获取父地点下拉列表
+     */
+    @Select("select id, name from location_info")
+    List<UserLocationInfoVO> getList();
 }
