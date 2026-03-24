@@ -2,14 +2,33 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <!-- 高德地图安全密钥配置 -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "YOUR_AMAP_SECURITY_CODE"
+        };
+    </script>
+    <!-- 直接引入高德地图API，确保在页面加载时就开始加载 -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_KEY&plugins=AMap.SimpleMarker"></script>
     <script>
-		
-		//引入高德地图
-		var script = document.createElement('script');
-		script.src = 'https://webapi.amap.com/maps?v=2.0&key=a2d7433d8c3cac437658503c82a6b568';
-		document.head.appendChild(script);
-		
-		
+        // 动态加载路径规划插件
+        function loadMapPlugins() {
+            if (window.AMap) {
+                console.log('开始加载高德地图插件');
+                AMap.plugin(['AMap.Walking', 'AMap.Riding', 'AMap.Driving', 'AMap.SimpleMarker'], function() {
+                    console.log('高德地图插件加载完成');
+                    console.log('AMap.Walking:', typeof AMap.Walking);
+                    console.log('AMap.Riding:', typeof AMap.Riding);
+                    console.log('AMap.Driving:', typeof AMap.Driving);
+                    console.log('AMap.SimpleMarker:', typeof AMap.SimpleMarker);
+                });
+            } else {
+                setTimeout(loadMapPlugins, 100);
+            }
+        }
+        loadMapPlugins();
+    </script>
+    <script>
       var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
         CSS.supports('top: constant(a)'))
       document.write(

@@ -73,14 +73,14 @@
         "sdkConfigs" : {
             "maps" : {
                 "amap" : {
-                    "key" : "a2d7433d8c3cac437658503c82a6b568",
-                    "securityJsCode" : "",
+                    "key" : "YOUR_AMAP_KEY",
+                    "securityJsCode" : "YOUR_AMAP_SECURITY_CODE",
                     "serviceHost" : ""
                 }
             }
         },
         "devServer" : {
-            "port" : 8080,
+            "port" : 8081,
             "https" : false,
 			"host":"0.0.0.0",
 			"disableHostCheck":true,
