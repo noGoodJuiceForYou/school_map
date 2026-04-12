@@ -15,6 +15,12 @@
             <if test="information != null">
                 information = #{information},
             </if>
+            <if test="longitude != null">
+                longitude = #{longitude},
+            </if>
+            <if test="latitude != null">
+                latitude = #{latitude},
+            </if>
         </set>
         where id = #{id}
     </update>
@@ -33,5 +39,11 @@
                 and name like concat('%',#{name},'%')
             </if>
         </where>
+        order by id desc
     </select>
+
+    <insert id="addLocation" parameterType="com.map.pojo.DTO.LocationInfoDTO">
+        insert into location_info(name, description, information, longitude, latitude)
+        values(#{name}, #{description}, #{information}, #{longitude}, #{latitude})
+    </insert>
 </mapper>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Coze Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.20/libs/cn/index.js"></script>
+  <script>
+    let chatClient = null;
+    
+    window.onload = function() {
+      chatClient = new CozeWebSDK.WebChatClient({
+        config: {
+          bot_id: '7581092393697542185',
+		   isIframe: false, 
+        },
+        componentProps: {
+          title: '夏小嘉校园智能导览助手',
+        },
+        auth: {
+          type: 'token',
+          token: 'YOUR_COZE_TOKEN',
+          onRefreshToken: function () {
+            return 'YOUR_COZE_TOKEN'
+          }
+        },
+        ui: {
+          asstBtn: {
+            isNeed: false
+          },
+          base: {
+            layout: 'mobile',
+			lang: 'zh-CN',
+          },
+		  header: {
+		    isShow: false,
+		    isNeedClose: false,
+		  },
+		  footer: {
+			isShow: false,
+		  }, 
+		  chatBot: {
+			uploadable: false,
+		  },
+        },
+      });
+	  
+      
+      console.log('Coze SDK 初始化完成');
+	  chatClient.showChatBot();
+    }
+  </script>
+</body>
+</html>

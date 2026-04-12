@@ -30,7 +30,6 @@ public interface LocationInfoMapper {
     /**
      * 新增父地点
      */
-    @Insert("insert into location_info(name, description, information) values(#{name}, #{description}, #{information})")
     void addLocation(LocationInfoDTO locationInfoDTO);
 
     /**
@@ -53,6 +52,6 @@ public interface LocationInfoMapper {
     /**
      * 获取父地点下拉列表
      */
-    @Select("select id, name from location_info")
+    @Select("select id, name, description, information, longitude, latitude from location_info")
     List<UserLocationInfoVO> getList();
 }

@@ -23,8 +23,7 @@
 
       <el-dropdown trigger="click" class="avatar-container right-menu-item hover-effect" @command="handleCommand">
         <div class="user-info">
-          <img :src="userStore.avatar" class="user-avatar" />
-          <span class="user-nickname">{{ userStore.nickName }}</span>
+          <span class="user-nickname">{{ userStore.name }}</span>
           <el-icon class="el-icon--right"><ArrowDown /></el-icon>
         </div>
         <template #dropdown>
@@ -189,13 +188,6 @@ function toggleTheme() {
 
           &:hover {
             background-color: rgba(0, 0, 0, 0.025);
-          }
-
-          .user-avatar {
-            width: 30px;
-            height: 30px;
-            margin-right: 8px;
-            border-radius: 50%;
           }
 
           .user-nickname{

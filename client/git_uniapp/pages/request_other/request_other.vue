@@ -1,7 +1,36 @@
 <template>
 	<view class="page-container">
+		<!-- 搜索栏 -->
+		<view class="custom-search-bar">
+			<view class="search-container">
+				<text class="search-icon">🔍</text>
+				<input 
+					class="search-input" 
+					v-model="searchKeyword" 
+					placeholder="搜索地点..."
+					@input="handleSearchInput"
+					@confirm="handleSearch"
+				/>
+				<text v-if="searchKeyword" class="clear-icon" @click="clearSearch">✕</text>
+			</view>
+			<text class="search-btn" @click="handleSearch">搜索</text>
+		</view>
 		
-	
+		<!-- 搜索结果 -->
+		<view v-if="showSearchResults" class="search-results">
+			<view 
+				v-for="(result, index) in searchResults" 
+				:key="index" 
+				class="search-result-item"
+				@click="handleSearchResultClick(result)"
+			>
+				<text class="result-name">{{ result.name }}</text>
+			</view>
+			<view v-if="searchResults.length === 0" class="no-results">
+				<text>未找到相关地点</text>
+			</view>
+		</view>
+
 		<view class="container">
 			<view id="mapContainer" class="map-container"></view>
 		</view>
@@ -24,6 +53,9 @@
 		<button @click="resetCenter" class="icon-btn" title="回到中心">
 			<text class="icon">🔄</text>
 		</button>
+		<button @click="startAi" class="icon-btn" title="AI">
+			<text class="icon">AI</text>
+		</button>
 	</view>
 	
 	<!-- 经纬度显示区域 -->
@@ -40,6 +72,19 @@
 	<view class="popup_subtitle" v-if="currentLocation && currentLocation.description">
 		{{ currentLocation.description }}
 	</view>
+	<!-- 左上角导航按钮 -->
+	<view class="popup_header_left">
+		<view class="navigate-button" @click="navigateToHere" title="到这儿去">
+			<text class="navigate-icon">🧭</text>
+			<text class="navigate-text">到这儿去</text>
+		</view>
+	</view>
+	<!-- 右上角关闭按钮 -->
+	<view class="popup_header_right">
+		<view class="icon-btn_close" @click="hidePopup" title="关闭">
+			<text class="icon">✕</text>
+		</view>
+	</view>
 </view>
 <view class="popup_content">
 	<!-- 循环渲染每个section -->
@@ -48,20 +93,47 @@
 		<view class="section-title" v-if="section.name">
 			{{ section.name }}
 		</view>
-		<!-- 水平滚动图片列表 -->
-		<scroll-view class="image-scroll" scroll-x show-scrollbar="false">
-			<view class="image-list">
-				<view class="image-item" v-for="(image, imageIndex) in section.images" :key="imageIndex">
-					<img 
-					:src="image" 
-					alt="图片" 
-					style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" 
-					@error="handleImageError($event, image)"
-					@click="openImagePreview(image)"
-				/>
+		<!-- 轮播图 -->
+			<view v-if="section.images && section.images.length > 0" class="swiper-container">
+				<!-- 前进按钮 -->
+				<view class="swiper-button swiper-button-next" @click="nextSlide(sectionIndex)" :class="{ 'disabled': (swiperCurrent[sectionIndex] || 0) === section.images.length - 1 }">
+					<text class="swiper-button-icon">›</text>
+				</view>
+				<!-- 后退按钮 -->
+				<view class="swiper-button swiper-button-prev" @click="prevSlide(sectionIndex)" :class="{ 'disabled': (swiperCurrent[sectionIndex] || 0) === 0 }">
+					<text class="swiper-button-icon">‹</text>
+				</view>
+				<view 
+					class="swiper-wrapper" 
+					@touchstart="touchStart(sectionIndex, $event)" 
+					@touchmove="touchMove(sectionIndex, $event)" 
+					@touchend="touchEnd(sectionIndex)"
+					:style="{ transform: `translateX(-${(swiperCurrent[sectionIndex] || 0) * 100}%)` }"
+				>
+					<view v-for="(image, imageIndex) in section.images" :key="imageIndex" class="swiper-slide">
+						<img 
+							:src="image" 
+							alt="图片" 
+							class="swiper-image"
+							@error="handleImageError($event, image)"
+							@click="openImagePreview(image)"
+						/>
+					</view>
+				</view>
+				<!-- 轮播指示器 -->
+				<view v-if="section.images.length > 1" class="swiper-pagination">
+					<view 
+						v-for="(image, index) in section.images" 
+						:key="index" 
+						class="swiper-pagination-bullet"
+						:class="{ 'active': (swiperCurrent[sectionIndex] || 0) === index }"
+						@click="setSwiperCurrent(sectionIndex, index)"
+					/>
 				</view>
 			</view>
-		</scroll-view>
+			<view v-else class="no-images">
+				<text>暂无图片</text>
+			</view>
 		<!-- 文字介绍 -->
 		<view class="section-description" v-if="section.description">
 			{{ section.description }}
@@ -71,10 +143,6 @@
 			{{ section.information }}
 		</view>
 	</view>
-</view>
-<view class="popup_bottom">
-	<button @click="hidePopup">关闭</button>
-	<button @click="navigateToHere">到这儿去</button>
 </view>
 </view>
 	
@@ -91,7 +159,10 @@
 				<text v-if="startLocation" class="location-text">{{ startLocation.name || `经度: ${startLocation.lng.toFixed(6)}, 纬度: ${startLocation.lat.toFixed(6)}` }}</text>
 				<text v-else class="placeholder">请点击地图选择起点</text>
 			</view>
-			<button class="map-select-btn" @click="selectStartFromMap">点击地图选择</button>
+			<view class="route-btn-group">
+				<button class="map-select-btn" @click="selectStartFromMap">点击地图选择</button>
+				<button class="map-select-btn use-location-btn" @click="useMyLocationAsStart">使用我的位置</button>
+			</view>
 		</view>
 		
 		<!-- 终点选择 -->
@@ -126,11 +197,28 @@
 			<view class="preview-close" @click="closeImagePreview">×</view>
 		</view>
 	</view>
+
+	<!-- Coze AI 助手 iframe 弹窗 -->
+	<view class="coze-iframe-container" v-if="showCozeIframe">
+		<view class="coze-iframe-header">
+			<text class="coze-title">厦小嘉校园智能导览助手</text>
+			<view class="coze-close-btn" @click="closeCozeIframe">
+				<text class="icon">✕</text>
+			</view>
+		</view>
+		<iframe 
+			class="coze-iframe" 
+			src="/static/coze-chat.html"
+			frameborder="0"
+			allow="microphone; camera"
+		></iframe>
+	</view>
+
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
-import {apiRoutePlanning,apiAddLocation,apiGetLocationInfo} from "@/api/apis.js"
+import { ref, onMounted, onUnmounted } from "vue"
+import {apiRoutePlanning,apiAddLocation,apiGetLocationInfo,apiGetLocationList} from "@/api/apis.js"
 import mapConfig from "@/config/map.js"
 import { geocode, reverseGeocode, routePlanning as mcpRoutePlanning, nearbySearch } from "@/api/mcp.js"
 
@@ -195,9 +283,18 @@ const imageScale = ref(1)
 const touchStartDistance = ref(0)
 const touchStartScale = ref(1)
 
+// 轮播图相关
+const swiperCurrent = ref({})
+const touchStartX = ref({})
+const touchEndX = ref({})
 
+// 搜索相关
+const searchKeyword = ref('')
+const searchResults = ref([])
+const showSearchResults = ref(false)
 
-
+// Coze iframe 相关
+const showCozeIframe = ref(false)
 
 //功能:轨迹演示动画
 function drawroute(pathPoints, mode = 'walking'){
@@ -712,6 +809,13 @@ function initMap() {
 	
 	// 安全码已在window._AMapSecurityConfig中设置
 	
+	// 根据屏幕宽度设置地图旋转角度，电脑端设置为东西朝向
+	const screenWidth = window.innerWidth;
+	let rotation = 0; // 默认南北朝向
+	if (screenWidth >= 1024) {
+		rotation = 90; // 东西朝向
+	}
+	
 	// 使用配置文件中的默认设置
 	map.value = new AMap.Map("mapContainer", {
 		zoom: mapConfig.default.zoom,
@@ -719,7 +823,7 @@ function initMap() {
 		viewMode: mapConfig.default.viewMode,
 		zoomEnable: true, // 启用缩放
 		pitch: 10,
-		rotation: 90, // 旋转角度
+		rotation: rotation, // 旋转角度，90为东西朝向
 		plugins: []
 	})
 	
@@ -747,8 +851,8 @@ function initMap() {
 	// 设置地图缩放限制
 	map.value.on('zoomchange', function() {
 		let currentZoom = map.value.getZoom();
-		if (currentZoom < 16) {
-			map.value.setZoom(16);
+		if (currentZoom < 15) {
+			map.value.setZoom(15);
 		} else if (currentZoom > 19) {
 			map.value.setZoom(19);
 		}
@@ -756,6 +860,14 @@ function initMap() {
 
 	// 设置地图边界限制
 	map.value.setLimitBounds(bounds);
+
+	// 监听地图移动结束事件，当超出边界时回到中心点
+	map.value.on('moveend', function() {
+		const center = map.value.getCenter();
+		if (!bounds.contains(center)) {
+			resetCenter();
+		}
+	});
 
 	handleAMapClick()
 	
@@ -817,7 +929,60 @@ function addCustomIcon() {
 		return marker;
 	}
 	
-	// 所有标注的坐标和ID
+	// 从后端获取地点信息
+	apiGetLocationList().then(res => {
+		console.log('后端返回的地点信息:', res);
+		if (res.code === 1 && res.data && res.data.length > 0) {
+			// 批量创建标注
+			res.data.forEach(item => {
+				if (item.longitude && item.latitude) {
+					const marker = createMarker([item.longitude, item.latitude], item.id);
+					map.value.add(marker);
+					customMarkers.value.push(marker);
+					
+					// 添加调试日志，确认标注添加成功
+					console.log(`添加标注: ID=${item.id}, 名称=${item.name}, 位置=[${item.longitude}, ${item.latitude}]`);
+				}
+			});
+			console.log(`成功添加 ${customMarkers.value.length} 个标注`);
+			
+			// 如果添加的标注数量为0，使用默认数据
+			if (customMarkers.value.length === 0) {
+				console.log('后端返回的地点数据中没有有效的经纬度信息，使用默认数据');
+				useDefaultMarkers();
+			}
+		} else {
+			console.log('后端没有返回地点信息，使用默认数据');
+			useDefaultMarkers();
+		}
+	}).catch(err => {
+		console.error('获取地点信息失败:', err);
+		useDefaultMarkers();
+	});
+}
+
+// 使用默认标注数据
+function useDefaultMarkers() {
+	const AMap = window.AMap;
+	if (!AMap) return;
+	
+	function createMarker(position, id) {
+		const marker = new AMap.Marker({
+			position: position,
+			title: "点击查看详细信息",
+			icon: new AMap.Icon({
+				size: new AMap.Size(12, 20),
+				image: "//webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+				imageSize: new AMap.Size(12, 20)
+			}),
+			anchor: new AMap.Pixel(6, 20),
+			offset: new AMap.Pixel(0, 0),
+			extData: { id: id }
+		});
+		marker.on("click", handleMarkerClick);
+		return marker;
+	}
+	
 	const markersData = [
 		{ position: [118.047711, 24.366820], id: 13 },
 		{ position: [118.047727, 24.366038], id: 8 },
@@ -848,14 +1013,11 @@ function addCustomIcon() {
 		{ position: [118.042551, 24.364712], id: 36 },
 		{ position: [118.049281, 24.366859], id: 37 },
 	];
-	
-	// 批量创建标注
 	markersData.forEach(data => {
 		const marker = createMarker(data.position, data.id);
 		map.value.add(marker);
 		customMarkers.value.push(marker);
 	});
-	
 	console.log(`成功添加 ${customMarkers.value.length} 个标注`);
 }
 
@@ -968,7 +1130,17 @@ function resetCenter() {
 	// 厦门大学嘉庚学院中心坐标
 	const schoolCenter = [118.045311, 24.366802];
 	map.value.setCenter(schoolCenter);
-	map.value.setZoom(16); // 重置到默认缩放级别
+	map.value.setZoom(16);
+}
+
+// Coze AI 助手 - 使用 iframe 方式打开
+function startAi() {
+	showCozeIframe.value = true
+}
+
+// 关闭 Coze iframe
+function closeCozeIframe() {
+	showCozeIframe.value = false
 }
 
 // 清除路径规划路线
@@ -1124,6 +1296,37 @@ function selectStartFromMap() {
 	uni.showToast({
 		title: '请在地图上点击选择起点',
 		icon: 'none'
+	});
+}
+
+// 使用我的位置作为起点
+function useMyLocationAsStart() {
+	uni.showLoading({
+		title: '定位中...',
+		mask: true
+	});
+	
+	locateMe(function(success, position) {
+		uni.hideLoading();
+		if (success) {
+			// 定位成功，设置起点为当前位置
+			startLocation.value = {
+				lng: position[0],
+				lat: position[1],
+				name: '我的位置'
+			};
+			
+			uni.showToast({
+				title: '起点已设置为当前位置',
+				icon: 'success'
+			});
+		} else {
+			// 定位失败
+			uni.showToast({
+				title: '定位失败，请检查定位权限',
+				icon: 'none'
+			});
+		}
 	});
 }
 
@@ -1312,28 +1515,162 @@ function getDistance(touch1, touch2) {
 	return Math.sqrt(x * x + y * y)
 }
 
+// 轮播图触摸开始事件
+function touchStart(sectionIndex, event) {
+	touchStartX.value[sectionIndex] = event.touches[0].clientX
+}
+
+// 轮播图触摸移动事件
+function touchMove(sectionIndex, event) {
+	touchEndX.value[sectionIndex] = event.touches[0].clientX
+}
+
+// 轮播图触摸结束事件
+function touchEnd(sectionIndex) {
+	if (!swiperCurrent.value[sectionIndex]) {
+		swiperCurrent.value[sectionIndex] = 0
+	}
+	const current = swiperCurrent.value[sectionIndex]
+	const images = currentLocation.value?.sections[sectionIndex]?.images || []
+	const imageCount = images.length
+	
+	if (touchEndX.value[sectionIndex] < touchStartX.value[sectionIndex] - 50) {
+		// 向左滑动
+		swiperCurrent.value[sectionIndex] = (current + 1) % imageCount
+	} else if (touchEndX.value[sectionIndex] > touchStartX.value[sectionIndex] + 50) {
+		// 向右滑动
+		swiperCurrent.value[sectionIndex] = (current - 1 + imageCount) % imageCount
+	}
+}
+
+// 手动设置轮播图当前索引
+function setSwiperCurrent(sectionIndex, index) {
+	swiperCurrent.value[sectionIndex] = index
+}
+
+// 轮播图前进按钮点击事件
+function nextSlide(sectionIndex) {
+	if (!swiperCurrent.value[sectionIndex]) {
+		swiperCurrent.value[sectionIndex] = 0
+	}
+	const current = swiperCurrent.value[sectionIndex]
+	const images = currentLocation.value?.sections[sectionIndex]?.images || []
+	const imageCount = images.length
+	
+	if (current < imageCount - 1) {
+		swiperCurrent.value[sectionIndex] = current + 1
+	}
+}
+
+// 轮播图后退按钮点击事件
+function prevSlide(sectionIndex) {
+	if (!swiperCurrent.value[sectionIndex]) {
+		swiperCurrent.value[sectionIndex] = 0
+	}
+	const current = swiperCurrent.value[sectionIndex]
+	
+	if (current > 0) {
+		swiperCurrent.value[sectionIndex] = current - 1
+	}
+}
+
+// 搜索相关方法
+function handleSearchInput() {
+	// 可以在这里添加防抖处理
+	if (searchKeyword.value.length > 0) {
+		// 自动搜索
+		handleSearch();
+	} else {
+		// 搜索词为空时，清除搜索结果
+		searchResults.value = [];
+		showSearchResults.value = false;
+	}
+}
+
+function handleSearch() {
+	if (!searchKeyword.value.trim()) {
+		showSearchResults.value = false;
+		return;
+	}
+
+	// 从后端获取地点列表并过滤
+	apiGetLocationList().then(res => {
+		if (res.code === 1 && res.data && res.data.length > 0) {
+			// 过滤搜索结果
+			searchResults.value = res.data.filter(item => {
+				return item.name.toLowerCase().includes(searchKeyword.value.toLowerCase());
+			});
+			showSearchResults.value = searchResults.value.length > 0;
+		} else {
+			searchResults.value = [];
+			showSearchResults.value = false;
+		}
+	}).catch(err => {
+		console.error('搜索失败:', err);
+		searchResults.value = [];
+		showSearchResults.value = false;
+	});
+}
+
+function clearSearch() {
+	searchKeyword.value = '';
+	searchResults.value = [];
+	showSearchResults.value = false;
+}
+
+function handleSearchResultClick(result) {
+	// 关闭搜索结果
+	showSearchResults.value = false;
+	
+	// 清空搜索栏
+	searchKeyword.value = '';
+	
+	// 定位到搜索结果
+	if (result.longitude && result.latitude) {
+		const position = [result.longitude, result.latitude];
+		map.value.setCenter(position);
+		map.value.setZoom(18);
+		
+		// 清除之前的搜索标记
+		const AMap = window.AMap;
+		if (AMap) {
+			const allOverlays = map.value.getAllOverlays();
+			allOverlays.forEach(overlay => {
+				if (overlay._isSearchMarker) {
+					map.value.remove(overlay);
+				}
+			});
+			
+			// 模拟点击事件，打开地点信息弹窗
+			const event = {
+				lnglat: new AMap.LngLat(result.longitude, result.latitude)
+			};
+			handleMarkerClick.call({
+				getExtData: () => ({ id: result.id }),
+				getPosition: () => position
+			}, event);
+		}
+	}
+}
+
+
+
 onMounted(() => {
 	// 检测 AMap 对象是否加载完成
 	let checkCount = 0;
-	const maxCheckCount = 30; // 最多检查30次，约3秒
+	const maxCheckCount = 30;
 	
 	function checkAMap() {
 		checkCount++;
 		
 		if (window.AMap) {
-			// AMap 对象已加载
 			console.log('AMap 对象加载成功');
-			// 初始化地图
-			console.log('开始初始化地图');
 			initMap();
 		} else if (checkCount < maxCheckCount) {
-			// AMap 对象未加载，继续检测
 			console.log(`等待 AMap 对象加载... (${checkCount}/${maxCheckCount})`);
 			setTimeout(checkAMap, 100);
 		} else {
-			// 超时，显示错误信息
-			console.error('高德地图 API 加载超时，请检查网络连接或 API key 是否正确');
-			// 显示错误提示给用户
+			console.error('高德地图 API 加载超时');
 			uni.showToast({
 				title: '地图加载失败，请检查网络连接',
 				icon: 'none',
@@ -1344,7 +1681,7 @@ onMounted(() => {
 	
 	// 开始检测
 	checkAMap();
-})
+});
 </script>
 
 <style lang="scss">
@@ -1384,12 +1721,53 @@ onMounted(() => {
 				color: #999;
 				font-size: 40rpx;
 				padding: 0 10rpx;
+				cursor: pointer;
 			}
 		}
 
 		.search-btn {
 			color: #007AFF;
 			font-size: 28rpx;
+			cursor: pointer;
+		}
+	}
+
+	.search-results {
+		position: absolute;
+		top: 120rpx;
+		left: 20rpx;
+		right: 20rpx;
+		background: white;
+		border-radius: 10rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+		max-height: 400rpx;
+		overflow-y: auto;
+		z-index: 999;
+
+		.search-result-item {
+			padding: 20rpx;
+			border-bottom: 1rpx solid #f0f0f0;
+			cursor: pointer;
+
+			&:last-child {
+				border-bottom: none;
+			}
+
+			&:hover {
+				background-color: #f5f5f5;
+			}
+
+			.result-name {
+				font-size: 28rpx;
+				color: #333;
+			}
+		}
+
+		.no-results {
+			padding: 40rpx;
+			text-align: center;
+			color: #999;
+			font-size: 26rpx;
 		}
 	}
 }
@@ -1539,9 +1917,10 @@ onMounted(() => {
 			font-size: 36rpx;
 			color: #fff;
 			font-weight: bold;
-			padding: 30rpx;
+			padding: 30rpx 90rpx;
 			border-bottom: 1px solid #555;
 			text-align: center;
+			position: relative;
 		}
 
 		.popup_subtitle {
@@ -1549,6 +1928,82 @@ onMounted(() => {
 			color: #ccc;
 			margin-top: 10rpx;
 			font-weight: normal;
+		}
+
+		/* 左上角导航按钮区域 */
+		.popup_header_left {
+			position: absolute;
+			top: 20rpx;
+			left: 20rpx;
+			z-index: 10;
+		}
+
+		/* 右上角关闭按钮区域 */
+		.popup_header_right {
+			position: absolute;
+			top: 20rpx;
+			right: 20rpx;
+			z-index: 10;
+		}
+
+		/* 导航按钮 */
+		.navigate-button {
+			display: flex;
+			align-items: center;
+			gap: 8rpx;
+			padding: 12rpx 18rpx;
+			border-radius: 25rpx;
+			background-color: rgba(255, 255, 255, 0.15);
+			cursor: pointer;
+			transition: all 0.3s ease;
+
+			.navigate-icon {
+				font-size: 24rpx;
+				color: #fff;
+			}
+
+			.navigate-text {
+				font-size: 22rpx;
+				font-weight: 500;
+				color: #fff;
+			}
+
+			&:hover {
+				background-color: rgba(255, 255, 255, 0.3);
+				transform: scale(1.05);
+			}
+
+			&:active {
+				transform: scale(0.95);
+			}
+		}
+
+		/* 关闭图标按钮 */
+		.icon-btn_close {
+			width: 50rpx;
+			height: 50rpx;
+			border-radius: 50%;
+			background-color: rgba(255, 255, 255, 0.15);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all 0.3s ease;
+
+			.icon {
+				font-size: 24rpx;
+				color: #fff;
+				font-weight: bold;
+			}
+
+			&:hover {
+				background-color: rgba(255, 100, 100, 0.5);
+				transform: scale(1.1);
+			}
+
+			&:active {
+				transform: scale(0.95);
+			}
 		}
 
 		.section-title {
@@ -1640,20 +2095,130 @@ onMounted(() => {
 	width: auto;
 }
 
-/* 单个图片项 */
-.image-item {
-	display: inline-block;
-	width: 450rpx;
-	height: 300rpx;
+/* 轮播图容器 */
+.swiper-container {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 16/9;
 	border-radius: 12rpx;
 	overflow: hidden;
 	background-color: #f5f5f5;
+	margin-bottom: 20rpx;
 }
 
-.image-item img {
+/* 轮播图包装器 */
+.swiper-wrapper {
+	display: flex;
+	height: 100%;
+	transition: transform 0.3s ease;
+}
+
+/* 轮播图幻灯片 */
+.swiper-slide {
+	flex: 0 0 100%;
+	height: 100%;
+	position: relative;
+}
+
+/* 轮播图图片 */
+.swiper-image {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
+	cursor: pointer;
+}
+
+/* 轮播图指示器 */
+.swiper-pagination {
+	position: absolute;
+	bottom: 10rpx;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 8rpx;
+	z-index: 10;
+}
+
+/* 轮播图指示器圆点 */
+.swiper-pagination-bullet {
+	width: 12rpx;
+	height: 12rpx;
+	border-radius: 50%;
+	background-color: rgba(255, 255, 255, 0.5);
+	transition: all 0.3s ease;
+	cursor: pointer;
+}
+
+/* 轮播图指示器激活状态 */
+.swiper-pagination-bullet.active {
+	width: 24rpx;
+	border-radius: 6rpx;
+	background-color: #fff;
+}
+
+/* 轮播图切换按钮 */
+.swiper-button {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 50rpx;
+	height: 50rpx;
+	border-radius: 50%;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	z-index: 10;
+}
+
+/* 轮播图按钮图标 */
+.swiper-button-icon {
+	font-size: 32rpx;
+	color: #fff;
+	font-weight: bold;
+}
+
+/* 前进按钮 */
+.swiper-button-next {
+	right: 10rpx;
+}
+
+/* 后退按钮 */
+.swiper-button-prev {
+	left: 10rpx;
+}
+
+/* 按钮悬停效果 */
+.swiper-button:hover {
+	background-color: rgba(0, 0, 0, 0.8);
+	transform: translateY(-50%) scale(1.1);
+}
+
+/* 按钮禁用状态 */
+.swiper-button.disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+
+/* 禁用状态下的悬停效果 */
+.swiper-button.disabled:hover {
+	background-color: rgba(0, 0, 0, 0.5);
+	transform: translateY(-50%) scale(1);
+}
+
+/* 无图片状态 */
+.no-images {
+	width: 100%;
+	aspect-ratio: 16/9;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #f5f5f5;
+	border-radius: 12rpx;
+	color: #999;
+	margin-bottom: 20rpx;
 }
 
 /* 文字介绍样式 */
@@ -1664,6 +2229,108 @@ onMounted(() => {
 	text-align: justify;
 	padding: 10rpx 0;
 	word-break: break-all;
+}
+
+/* Coze iframe 弹窗样式 */
+/* Coze iframe 弹窗样式 - 紧贴右下角 */
+.coze-iframe-container {
+	position: fixed;
+	right: 0;
+	bottom: 0;
+	width: 25%;
+	height: 80%;
+	background-color: white;
+	box-shadow: -2rpx -2rpx 20rpx rgba(0, 0, 0, 0.15);
+	z-index: 10000;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border-top-left-radius: 20rpx;
+	
+	.coze-iframe-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 20rpx 24rpx;
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		color: white;
+		
+		.coze-title {
+			font-size: 28rpx;
+			font-weight: bold;
+		}
+		
+		.coze-close-btn {
+			width: 48rpx;
+			height: 48rpx;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: rgba(255, 255, 255, 0.2);
+			cursor: pointer;
+			transition: all 0.3s ease;
+			
+			.icon {
+				font-size: 28rpx;
+				color: white;
+				font-weight: bold;
+			}
+			
+			&:hover {
+				background-color: rgba(255, 255, 255, 0.4);
+				transform: scale(1.05);
+			}
+			
+			&:active {
+				transform: scale(0.95);
+			}
+		}
+	}
+	
+	.coze-iframe {
+		flex: 1;
+		width: 100%;
+		border: none;
+		background-color: #fff;
+	}
+}
+
+/* 移动端适配 - 占满全屏 */
+@media screen and (max-width: 768px) {
+	.coze-iframe-container {
+		width: 100%;
+		height: 100%;
+		right: 0;
+		bottom: 0;
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
+		
+		.coze-iframe-header {
+			padding: 24rpx 32rpx;
+			
+			.coze-title {
+				font-size: 34rpx;
+			}
+			
+			.coze-close-btn {
+				width: 60rpx;
+				height: 60rpx;
+				
+				.icon {
+					font-size: 36rpx;
+				}
+			}
+		}
+	}
+}
+
+/* 平板适配 */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+	.coze-iframe-container {
+		width: 35%;
+		height: 75%;
+	}
 }
 
 /* 媒体查询 - 适配手机屏幕 */
@@ -1686,9 +2353,42 @@ onMounted(() => {
 	
 	.popup_title {
 		font-size: 32rpx;
-		padding: 20rpx;
+		padding: 20rpx 80rpx;
 	}
-	
+
+	/* 移动端导航按钮适配 */
+		.navigate-button {
+			padding: 10rpx 16rpx;
+
+			.navigate-icon {
+				font-size: 20rpx;
+			}
+
+			.navigate-text {
+				font-size: 20rpx;
+			}
+		}
+
+		/* 移动端关闭按钮适配 */
+		.icon-btn_close {
+			width: 44rpx;
+			height: 44rpx;
+
+			.icon {
+				font-size: 24rpx;
+			}
+		}
+
+	.popup_header_left {
+		top: 16rpx;
+		left: 16rpx;
+	}
+
+	.popup_header_right {
+		top: 16rpx;
+		right: 16rpx;
+	}
+
 	.popup_content {
 		padding: 20rpx;
 	}
@@ -1714,27 +2414,43 @@ onMounted(() => {
 	}
 	
 	.route-input {
-		margin-bottom: 20rpx;
-		
-		text {
-			font-size: 24rpx;
-			margin-bottom: 8rpx;
-		}
-		
-		.location-info .location-text {
-			font-size: 22rpx;
-			padding: 8rpx;
-		}
-		
-		.location-info .placeholder {
-			font-size: 22rpx;
-		}
+	margin-bottom: 20rpx;
+	
+	text {
+		font-size: 24rpx;
+		margin-bottom: 8rpx;
+	}
+	
+	.location-info .location-text {
+		font-size: 22rpx;
+		padding: 8rpx;
+	}
+	
+	.location-info .placeholder {
+		font-size: 22rpx;
+	}
+	
+	.route-btn-group {
+		display: flex;
+		gap: 10rpx;
 		
 		.map-select-btn {
+			flex: 1;
 			padding: 12rpx;
 			font-size: 22rpx;
 		}
+		
+		.use-location-btn {
+			background-color: #4CD964 !important;
+			color: white !important;
+		}
 	}
+	
+	.map-select-btn {
+		padding: 12rpx;
+		font-size: 22rpx;
+	}
+}
 	
 	.popup .transport-selector {
 		margin-bottom: 15rpx;
@@ -1753,6 +2469,14 @@ onMounted(() => {
 			}
 		}
 	}
+	
+	/* 移动端 Coze iframe 样式 */
+	.coze-iframe-container {
+		width: 90vw;
+		height: 70vh;
+		right: 5vw;
+		bottom: 120rpx;
+	}
 }
 
 /* 媒体查询 - 适配平板屏幕 */
@@ -1765,6 +2489,13 @@ onMounted(() => {
 	.route-popup {
 		width: 50vw;
 		max-height: 80vh;
+	}
+	
+	.coze-iframe-container {
+		width: 450rpx;
+		height: 650rpx;
+		right: 100rpx;
+		bottom: 180rpx;
 	}
 }
 
@@ -1935,4 +2666,5 @@ onMounted(() => {
 	align-items: center;
 	justify-content: center;
 }
+
 </style>

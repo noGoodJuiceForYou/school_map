@@ -43,6 +43,8 @@
       <el-table-column label="地点名称" align="center" prop="name" />
       <el-table-column label="描述" align="center" prop="description" />
       <el-table-column label="详细信息" align="center" prop="information" />
+      <el-table-column label="经度" align="center" prop="longitude" width="120" />
+      <el-table-column label="纬度" align="center" prop="latitude" width="120" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button
@@ -88,6 +90,15 @@
         </el-form-item>
         <el-form-item label="详细信息" prop="information">
           <el-input v-model="form.information" type="textarea" placeholder="请输入内容" />
+        </el-form-item>
+        <el-form-item label="经度" prop="longitude">
+          <el-input v-model="form.longitude" placeholder="请输入经度" />
+        </el-form-item>
+        <el-form-item label="纬度" prop="latitude">
+          <el-input v-model="form.latitude" placeholder="请输入纬度" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="openMapDialog">在地图上选择位置</el-button>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -166,7 +177,21 @@
         </div>
       </template>
     </el-dialog>
-    
+
+    <!-- 地图选择对话框 -->
+    <el-dialog :title="'选择位置'" v-model="mapDialogVisible" width="800px" height="600px" append-to-body @close="handleMapDialogClose">
+      <div id="mapContainer" class="map-container"></div>
+      <div class="coordinates-info" v-if="mapCoordinates.lng !== null && mapCoordinates.lat !== null">
+        <p>经度: {{ mapCoordinates.lng }}</p>
+        <p>纬度: {{ mapCoordinates.lat }}</p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="mapDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmMapSelection" :disabled="mapCoordinates.lng === null || mapCoordinates.lat === null">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
     
   </div>
 </template>
@@ -205,7 +230,14 @@ export default {
         name: null
       },
       // 表单参数
-      form: {},
+      form: {
+        id: null,
+        name: null,
+        description: null,
+        information: null,
+        longitude: null,
+        latitude: null
+      },
       // 表单校验
       rules: {
         name: [
@@ -222,7 +254,14 @@ export default {
       showUploader: false,
       fileList: [],
       selectedImages: [], // 选中的图片索引数组
-      uploadedImages: []
+      uploadedImages: [],
+      // 地图相关
+    mapDialogVisible: false,
+    mapCoordinates: {
+      lng: null,
+      lat: null
+    },
+    map: null
     }
   },
   created() {
@@ -259,8 +298,105 @@ export default {
         id: null,
         name: null,
         description: null,
-        information: null
+        information: null,
+        longitude: null,
+        latitude: null
       }
+    },
+    // 打开地图选择对话框
+    openMapDialog() {
+      this.mapDialogVisible = true
+      this.$nextTick(() => {
+        this.initMap()
+      })
+    },
+    // 初始化地图
+    initMap() {
+      const AMap = window.AMap
+      if (!AMap) {
+        console.error('高德地图 API 加载失败')
+        return
+      }
+      
+      // 设置默认中心点
+      const defaultCenter = [118.045311, 24.366802]
+      const center = this.mapCoordinates.lng && this.mapCoordinates.lat ? [this.mapCoordinates.lng, this.mapCoordinates.lat] : defaultCenter
+      
+      // 初始化地图
+      this.map = new AMap.Map('mapContainer', {
+        zoom: 16,
+        center: center,
+        viewMode: '3D'
+      })
+      
+      // 如果有坐标，添加当前位置标记
+      if (this.mapCoordinates.lng && this.mapCoordinates.lat) {
+        new AMap.Marker({
+          position: [this.mapCoordinates.lng, this.mapCoordinates.lat],
+          map: this.map
+        })
+      }
+      
+      // 添加点击事件
+      this.map.on('click', (e) => {
+        this.mapCoordinates.lng = e.lnglat.getLng()
+        this.mapCoordinates.lat = e.lnglat.getLat()
+        
+        // 清除之前的标记
+        this.map.clearMap()
+        
+        // 添加新标记
+        new AMap.Marker({
+          position: [this.mapCoordinates.lng, this.mapCoordinates.lat],
+          map: this.map
+        })
+        
+        // 重新加载已有的标注位置
+        this.loadExistingMarkers()
+      })
+      
+      // 加载已有的标注位置
+      this.loadExistingMarkers()
+    },
+    // 加载已有的标注位置
+    loadExistingMarkers() {
+      const AMap = window.AMap
+      if (!AMap || !this.map) {
+        return
+      }
+      
+      // 从后端获取所有地点信息
+      import('@/api/system/location_info').then(({ getLocationList }) => {
+        getLocationList().then(res => {
+          const data = res.data || res
+          if (data && data.length > 0) {
+            data.forEach(item => {
+              if (item.longitude && item.latitude) {
+                // 创建标注
+                new AMap.Marker({
+                  position: [item.longitude, item.latitude],
+                  map: this.map,
+                  title: item.name,
+                  icon: new AMap.Icon({
+                    size: new AMap.Size(12, 20),
+                    image: "//webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+                    imageSize: new AMap.Size(12, 20)
+                  })
+                })
+              }
+            })
+          }
+        }).catch(err => {
+          console.error('获取地点信息失败:', err)
+        })
+      })
+    },
+    // 确认地图选择
+    confirmMapSelection() {
+      this.form.longitude = this.mapCoordinates.lng
+      this.form.latitude = this.mapCoordinates.lat
+      // 关闭对话框会触发 handleMapDialogClose 方法，自动清除地图实例
+      this.mapDialogVisible = false
     },
     /** 搜索按钮操作 */
     handleQuery() {
@@ -307,15 +443,19 @@ export default {
       
       // 先显示加载状态
       this.loading = true
-      getInfo(id).then(response => {
-        console.log('got info data:', response);
-        // 适配不同的响应格式
-        const data = response.data || response
+      getInfo(id).then(data => {
+        console.log('got info data:', data);
         this.form = data || {}
+        // 更新地图坐标，确保地图弹窗能显示当前地点位置
+        if (this.form.longitude && this.form.latitude) {
+          this.mapCoordinates.lng = this.form.longitude
+          this.mapCoordinates.lat = this.form.latitude
+        }
         this.open = true
         this.title = "修改地点信息"
         console.log('open is now:', this.open);
         console.log('form data:', this.form);
+        console.log('mapCoordinates:', this.mapCoordinates);
       }).catch(error => {
         ElMessage.error('获取地点详情失败：' + (error.message || '未知错误'))
         console.error('getInfo error:', error);
@@ -485,6 +625,25 @@ export default {
       ElMessage.success('操作完成')
     },
     
+    /** 地图弹窗关闭时的处理 */
+    handleMapDialogClose() {
+      // 清除地图实例
+      if (this.map) {
+        this.map.destroy()
+        this.map = null
+      }
+      // 重置地图坐标
+      if (this.form.id) {
+        // 如果是修改模式，保持当前表单中的坐标
+        this.mapCoordinates.lng = this.form.longitude
+        this.mapCoordinates.lat = this.form.latitude
+      } else {
+        // 如果是新增模式，重置为null
+        this.mapCoordinates.lng = null
+        this.mapCoordinates.lat = null
+      }
+    },
+    
   }
 }
 </script>
@@ -559,5 +718,18 @@ export default {
 .no-images {
   text-align: center;
   padding: 50px 0;
+}
+
+/* 地图容器样式 */
+.map-container {
+  width: 100%;
+  height: 500px;
+  margin-bottom: 20px;
+}
+
+.coordinates-info {
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #606266;
 }
 </style>

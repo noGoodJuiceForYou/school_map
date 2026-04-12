@@ -21,4 +21,8 @@ public class AdminLocationInfoVO {
     private String description;
     // 详细信息
     private String information;
+    // 经度
+    private Double longitude;
+    // 纬度
+    private Double latitude;
 }

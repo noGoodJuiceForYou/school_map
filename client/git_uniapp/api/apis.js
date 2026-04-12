@@ -44,6 +44,14 @@ export function apiAddLocation(data) {
 	})
 }
 
+// 获取所有地点列表接口
+export function apiGetLocationList() {
+	return request({
+		url: '/user/location/list',
+		method: 'GET'
+	})
+}
+
 // 使用用户提供的Key
 export const AMAP_KEY = 'YOUR_AMAP_KEY';
 // 安全密钥

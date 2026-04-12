@@ -8,34 +8,19 @@
 			"navigationStyle": "custom",
 			"enablePullDownRefresh": false
 		}
-	},
-	{
-		"path" : "pages/person-view/person-view",
-		"style" : 
-		{
-			"navigationBarTitleText" : "person-view"
-		}
 	}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "green",
-		"navigationBarTitleText": "uni-app",
+		"navigationBarTitleText": "TKKC校园导览",
 		"navigationBarBackgroundColor": "#55ffff",
 		"backgroundColor": "#F8F8F8",
 		"enablePullDownRefresh": true
 	},
-	"tabBar": {
-			"color": "black",
-			"selectedColor": "#aa0000",			
-			"list": [
-				{
-					"pagePath": "pages/request_other/request_other",
-					"text": "首页",
-					"iconPath": "/static/tabbar/home.png",
-					"selectedIconPath": "/static/tabbar/home-h.png"
-				}
-			]
-		},
 
-	"uniIdRouter": {}
+
+	"uniIdRouter": {},
+	"tabBar": {
+		"list": []
+	}
 }

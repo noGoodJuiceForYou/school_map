@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 @RestController("UserLocationController")
 @RequestMapping("/user/location")
@@ -28,6 +29,17 @@ public class LocationInfoController {
         log.info("获取地点信息，id: {}", id);
         UserLocationInfoVO userLocationInfoVO = locationInfoService.getInfo(id);
         return Result.success(userLocationInfoVO);
+    }
+
+    /**
+     * 获取所有地点列表
+     * @return
+     */
+    @GetMapping("/list")
+    public Result<List<UserLocationInfoVO>> getLocationList() {
+        log.info("获取所有地点列表");
+        List<UserLocationInfoVO> locationList = locationInfoService.getLocationList();
+        return Result.success(locationList);
     }
 
 }

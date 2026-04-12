@@ -30,6 +30,8 @@ const useUserStore = defineStore(
           const token = data.token
           setToken(token)
           this.token = token
+          // 存储登录的用户名
+          this.name = username
           return data
         } catch (error) {
           // 如果是网络错误或其他错误，也需要处理
@@ -44,9 +46,9 @@ const useUserStore = defineStore(
           this.roles = ['admin']
           this.permissions = []
           this.id = '1'
-          this.name = 'admin'
-          this.nickName = '管理员'
-          this.avatar = defAva
+          // 保持name为登录时的用户名，不硬编码
+          this.nickName = this.name
+          this.avatar = ''
           console.log('User info loaded:', this)
           
           // 引入权限模块并生成路由
