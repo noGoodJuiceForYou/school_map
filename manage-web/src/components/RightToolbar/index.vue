@@ -1,12 +1,7 @@
 <template>
   <div class="top-right-btn" :style="style">
     <el-row>
-      <el-tooltip class="item" effect="dark" :content="showSearch ? '隐藏搜索' : '显示搜索'" placement="top" v-if="search">
-        <el-button circle icon="Search" @click="toggleSearch()" />
-      </el-tooltip>
-      <el-tooltip class="item" effect="dark" content="刷新" placement="top">
-        <el-button circle icon="Refresh" @click="refresh()" />
-      </el-tooltip>
+
       <el-tooltip class="item" effect="dark" content="显隐列" placement="top" v-if="Object.keys(columns).length > 0">
         <el-button circle icon="Menu" @click="showColumn()" v-if="showColumnsType == 'transfer'"/>
         <el-dropdown trigger="click" :hide-on-click="false" style="padding-left: 12px" v-if="showColumnsType == 'checkbox'">
@@ -41,20 +36,10 @@
 
 <script setup>
 const props = defineProps({
-  /* 是否显示检索条件 */
-  showSearch: {
-    type: Boolean,
-    default: true
-  },
   /* 显隐列信息（数组格式、对象格式） */
   columns: {
     type: [Array, Object],
     default: () => ({})
-  },
-  /* 是否显示检索图标 */
-  search: {
-    type: Boolean,
-    default: true
   },
   /* 显隐列类型（transfer穿梭框、checkbox复选框） */
   showColumnsType: {
@@ -68,7 +53,7 @@ const props = defineProps({
   },
 })
 
-const emits = defineEmits(['update:showSearch', 'queryTable'])
+const emits = defineEmits([])
 
 // 显隐数据
 const value = ref([])
@@ -93,15 +78,6 @@ const isChecked = computed({
 const isIndeterminate = computed(() => Array.isArray(props.columns) ? props.columns.some((col) => col.visible) && !isChecked.value : Object.values(props.columns).some((col) => col.visible) && !isChecked.value)
 const transferData = computed(() => Array.isArray(props.columns) ? props.columns.map((item, index) => ({ key: index, label: item.label })) : Object.keys(props.columns).map((key, index) => ({ key: index, label: props.columns[key].label })))
 
-// 搜索
-function toggleSearch() {
-  emits("update:showSearch", !props.showSearch)
-}
-
-// 刷新
-function refresh() {
-  emits("queryTable")
-}
 
 // 右侧列表元素变化
 function dataChange(data) {

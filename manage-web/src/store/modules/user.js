@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import router from '@/router'
 import { ElMessageBox } from 'element-plus'
 import { login, getInfo } from '@/api/login'
-import { getToken, setToken, removeToken } from '@/utils/auth'
+import { getToken, setToken, removeToken, getUserName, setUserName, removeUserName } from '@/utils/auth'
 import { isEmpty } from "@/utils/validate"
 import defAva from '@/assets/images/profile.jpg'
 
@@ -12,7 +12,7 @@ const useUserStore = defineStore(
     state: () => ({
       token: getToken(),
       id: '',
-      name: '',
+      name: getUserName() || '',
       nickName: '',
       avatar: '',
       roles: [],
@@ -29,6 +29,7 @@ const useUserStore = defineStore(
           // 成功登录 - 响应拦截器已处理，直接返回token
           const token = data.token
           setToken(token)
+          setUserName(username)
           this.token = token
           // 存储登录的用户名
           this.name = username
@@ -42,6 +43,11 @@ const useUserStore = defineStore(
       // 获取用户信息
       async getInfo() {
         try {
+          // 从cookies获取用户名（解决刷新后用户名消失的问题）
+          if (!this.name) {
+            this.name = getUserName() || ''
+          }
+          
           // 默认设置管理员角色
           this.roles = ['admin']
           this.permissions = []
@@ -67,9 +73,11 @@ const useUserStore = defineStore(
         return new Promise((resolve) => {
           // 不调用后端接口，直接清除本地数据
           this.token = ''
+          this.name = ''
           this.roles = []
           this.permissions = []
           removeToken()
+          removeUserName()
           resolve()
         })
       }

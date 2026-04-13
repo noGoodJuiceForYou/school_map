@@ -43,7 +43,7 @@
           @click="handleDelete"
         >删除</el-button>
       </el-col>
-      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+      <right-toolbar></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="locationList" @selection-change="handleSelectionChange">

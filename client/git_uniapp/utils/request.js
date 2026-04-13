@@ -1,5 +1,5 @@
-// 基础 URL 配置
-const BASE_URL = 'http://localhost:8080';
+// 基础 URL 配置 - 使用相对路径，通过nginx代理转发
+const BASE_URL = '';
 
 export function request(config = {}) {
 	const {

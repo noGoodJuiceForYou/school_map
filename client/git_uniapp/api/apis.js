@@ -3,7 +3,7 @@ import { request } from "@/utils/request.js"
 // 登录接口
 export function apiGetlogin(data) {
 	return request({
-		url: "/user/login",
+		url: "/api/user/login",
 		method: 'POST',
 		header: {
 			'Content-Type': 'application/json'
@@ -15,7 +15,7 @@ export function apiGetlogin(data) {
 // 注册接口
 export function apiRegister(data) {
 	return request({
-		url: "/user/register",
+		url: "/api/user/register",
 		method: 'POST',
 		header: {
 			'Content-Type': 'application/json'
@@ -27,7 +27,7 @@ export function apiRegister(data) {
 // 获取地点信息接口
 export function apiGetLocationInfo(id) {
 	return request({
-		url: `/user/location/${id}`,
+		url: `/api/user/location/${id}`,
 		method: 'GET'
 	})
 }
@@ -35,7 +35,7 @@ export function apiGetLocationInfo(id) {
 // 添加父地点接口
 export function apiAddLocation(data) {
 	return request({
-		url: '/admin/location/add',
+		url: '/api/admin/location/add',
 		method: 'POST',
 		header: {
 			'Content-Type': 'application/json'
@@ -47,7 +47,7 @@ export function apiAddLocation(data) {
 // 获取所有地点列表接口
 export function apiGetLocationList() {
 	return request({
-		url: '/user/location/list',
+		url: '/api/user/location/list',
 		method: 'GET'
 	})
 }
