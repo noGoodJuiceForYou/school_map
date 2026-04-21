@@ -2,7 +2,7 @@ import router from './router'
 import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { getToken, removeToken } from '@/utils/auth'
+import { getUserName, removeUserName } from '@/utils/auth'
 import { isPathMatch } from '@/utils/validate'
 import { isRelogin } from '@/utils/request'
 import useUserStore from '@/store/modules/user'
@@ -19,9 +19,9 @@ const isWhiteList = (path) => {
 router.beforeEach((to, from, next) => {
   NProgress.start()
   
-  if (getToken()) {
+  if (getUserName()) {
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
-    /* has token*/
+    /* has username*/
     if (to.path === '/') {
       // 如果已登录，访问登录页面(/)，重定向到首页
       next({ path: '/index' })
@@ -46,7 +46,7 @@ router.beforeEach((to, from, next) => {
       }
     }
   } else {
-      // 没有token
+      // 没有username
       if (isWhiteList(to.path)) {
         // 在免登录白名单，直接进入
         next()

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.map.mapper.UserCommentMapper">
+
+
+    <select id="getCommentsByLocationId" resultType="com.map.pojo.DTO.UserCommentDTO">
+        select uc.id, uc.user_id, u.username, uc.location_id, uc.content, uc.time
+        from user_comment uc, user u
+        where uc.location_id = #{locationId} and uc.user_id = u.id order by time desc
+    </select>
+</mapper>

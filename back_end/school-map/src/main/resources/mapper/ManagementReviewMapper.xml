@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.map.mapper.ManagementReviewMapper">
+    <delete id="deleteById">
+        delete from user_comment where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="pageQuery" resultType="com.map.pojo.DTO.UserCommentDTO">
+        select uc.id, uc.user_id, u.username, uc.location_id, uc.content, uc.time
+        from user_comment uc, user u
+        where uc.user_id = u.id and uc.needs_review = 2 order by time desc
+    </select>
+
+</mapper>

@@ -94,6 +94,51 @@ export const constantRoutes = [
         meta: { title: '子地点', icon: 'tree' }
       }
     ]
+  },
+  {
+    path: '/comment',
+    component: Layout,
+    redirect: '/comment/review',
+    name: 'Comment',
+    meta: { title: '评论管理', icon: 'message' },
+    children: [
+      {
+        path: 'review',
+        component: () => import('@/views/comment_review/index.vue'),
+        name: 'CommentReview',
+        meta: { title: '评论审核', icon: 'message' }
+      }
+    ]
+  },
+  {
+    path: '/system',
+    component: Layout,
+    redirect: '/system/user',
+    name: 'System',
+    meta: { title: '系统管理', icon: 'system' },
+    children: [
+      {
+        path: 'user',
+        component: () => import('@/views/system/user/index.vue'),
+        name: 'User',
+        meta: { title: '用户管理', icon: 'user' }
+      }
+    ]
+  },
+  {
+    path: '/review',
+    component: Layout,
+    redirect: '/review/images',
+    name: 'Review',
+    meta: { title: '审核管理', icon: 'review' },
+    children: [
+      {
+        path: 'images',
+        component: () => import('@/views/review/images/index.vue'),
+        name: 'ReviewImages',
+        meta: { title: '图片审核', icon: 'image' }
+      }
+    ]
   }
 ]
 

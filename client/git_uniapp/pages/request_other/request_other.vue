@@ -1,5 +1,5 @@
 <template>
-  <view class="page-container">
+  <view class="page-container" @click="handleClickOutside">
     <!-- 搜索栏 -->
     <view class="custom-search-bar">
       <view class="search-container">
@@ -47,6 +47,25 @@
       <button @click="startAi" class="icon-btn" title="AI">
         <text class="icon">AI</text>
       </button>
+      <view class="icon-btn-container user-btn-container">
+        <button @click.stop="toggleUserMenu" class="icon-btn" title="用户中心">
+          <text class="icon">{{ isLoggedIn ? '👤' : '登' }}</text>
+        </button>
+        <view v-if="showUserMenu" class="user-menu" @click.stop> 
+          <view v-if="isLoggedIn" class="user-menu-item username-item">
+            <text>{{ username }}</text>
+          </view>
+          <view v-if="isLoggedIn" class="user-menu-item" @click="showPendingImages">
+            <text>查看正在审核的图片</text>
+          </view>
+          <view v-if="isLoggedIn" class="user-menu-item" @click="logout">
+            <text>退出登录</text>
+          </view>
+          <view v-else class="user-menu-item" @click="showLoginDialog = true">
+            <text>登录</text>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 经纬度显示区域 -->
@@ -106,35 +125,45 @@
         <view class="section-title" v-if="section.name">
           {{ section.name }}
         </view>
-        <!-- 轮播图 -->
-        <view v-if="section.images && section.images.length > 0" class="swiper-container">
-          <!-- 前进按钮 -->
-          <view class="swiper-button swiper-button-next" @click="nextSlide(sectionIndex)"
-            :class="{ 'disabled': (swiperCurrent[sectionIndex] || 0) === section.images.length - 1 }">
-            <text class="swiper-button-icon">›</text>
-          </view>
-          <!-- 后退按钮 -->
-          <view class="swiper-button swiper-button-prev" @click="prevSlide(sectionIndex)"
-            :class="{ 'disabled': (swiperCurrent[sectionIndex] || 0) === 0 }">
-            <text class="swiper-button-icon">‹</text>
-          </view>
-          <view class="swiper-wrapper" @touchstart="touchStart(sectionIndex, $event)"
-            @touchmove="touchMove(sectionIndex, $event)" @touchend="touchEnd(sectionIndex)"
-            :style="{ transform: `translateX(-${(swiperCurrent[sectionIndex] || 0) * 100}%)` }">
-            <view v-for="(image, imageIndex) in section.images" :key="imageIndex" class="swiper-slide">
-              <img :src="image" alt="图片" class="swiper-image" @error="handleImageError($event, image)"
-                @click="openImagePreview(image)" />
+        <!-- 轮播图和上传按钮 -->
+        <template v-if="section.images && section.images.length > 0">
+          <view class="swiper-container">
+            <!-- 前进按钮 -->
+            <view class="swiper-button swiper-button-next" @click="nextSlide(sectionIndex)"
+              :class="{ 'disabled': (swiperCurrent[sectionIndex] || 0) === section.images.length - 1 }">
+              <text class="swiper-button-icon">›</text>
+            </view>
+            <!-- 后退按钮 -->
+            <view class="swiper-button swiper-button-prev" @click="prevSlide(sectionIndex)"
+              :class="{ 'disabled': (swiperCurrent[sectionIndex] || 0) === 0 }">
+              <text class="swiper-button-icon">‹</text>
+            </view>
+            <view class="swiper-wrapper" @touchstart="touchStart(sectionIndex, $event)"
+              @touchmove="touchMove(sectionIndex, $event)" @touchend="touchEnd(sectionIndex)"
+              :style="{ transform: `translateX(-${(swiperCurrent[sectionIndex] || 0) * 100}%)` }">
+              <view v-for="(image, imageIndex) in section.images" :key="imageIndex" class="swiper-slide">
+                <img :src="image" alt="图片" class="swiper-image" @error="handleImageError($event, image)"
+                  @click="openImagePreview(image)" />
+              </view>
+            </view>
+            <!-- 轮播指示器 -->
+            <view v-if="section.images.length > 1" class="swiper-pagination">
+              <view v-for="(image, index) in section.images" :key="index" class="swiper-pagination-bullet"
+                :class="{ 'active': (swiperCurrent[sectionIndex] || 0) === index }"
+                @click="setSwiperCurrent(sectionIndex, index)" />
             </view>
           </view>
-          <!-- 轮播指示器 -->
-          <view v-if="section.images.length > 1" class="swiper-pagination">
-            <view v-for="(image, index) in section.images" :key="index" class="swiper-pagination-bullet"
-              :class="{ 'active': (swiperCurrent[sectionIndex] || 0) === index }"
-              @click="setSwiperCurrent(sectionIndex, index)" />
+          <!-- 上传图片按钮 -->
+          <view class="upload-image-btn" @click="uploadImage(sectionIndex)">
+            <text>我要上传图片</text>
           </view>
-        </view>
+        </template>
         <view v-else class="no-images">
           <text>暂无图片</text>
+          <!-- 上传图片按钮 -->
+          <view class="upload-image-btn" @click="uploadImage(sectionIndex)">
+            <text>我要上传图片</text>
+          </view>
         </view>
         <!-- 文字介绍 -->
         <view class="section-description" v-if="section.description">
@@ -143,6 +172,37 @@
         <!-- 详细信息 -->
         <view class="section-description" v-if="section.information">
           {{ section.information }}
+        </view>
+        <!-- 评论区域 - 只有主地点显示评论 -->
+        <view v-if="!section.subLocationId" class="comments-section">
+          <view class="comments-header">
+            <text class="comments-title">评论</text>
+            <view class="header-right">
+              <text class="username-display" v-if="isLoggedIn">{{ username }}</text>
+              <text class="add-comment-btn" @click="showAddCommentDialog">发表评论</text>
+            </view>
+          </view>
+          <!-- 评论列表 -->
+          <view class="comments-list">
+            <view v-for="(comment, commentIndex) in currentLocation.comments?.slice(0, 2)" :key="commentIndex" class="comment-item">
+              <view class="comment-header">
+                <text class="comment-username">{{ comment.username }}</text>
+                <text class="comment-time">{{ formatTime(comment.time) }}</text>
+              </view>
+              <view class="comment-content">{{ comment.content }}</view>
+              <view class="comment-actions" v-if="isCurrentUser(comment.userId)">
+                <text class="delete-comment-btn" @click="deleteComment(comment.id)">删除</text>
+              </view>
+            </view>
+            <!-- 查看更多评论按钮 -->
+            <view v-if="currentLocation.comments && currentLocation.comments.length > 2" class="view-more-comments">
+              <text @click="showAllComments">查看全部 {{ currentLocation.comments.length }} 条评论</text>
+            </view>
+            <!-- 暂无评论 -->
+            <view v-if="!currentLocation.comments || currentLocation.comments.length === 0" class="no-comments">
+              <text>暂无评论，快来发表第一条评论吧！</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -207,20 +267,195 @@
     <iframe class="coze-iframe" src="/static/coze-chat.html" frameborder="0" allow="microphone; camera"></iframe>
   </view>
 
+  <!-- 评论弹窗 -->
+  <view class="popup comment-popup" v-if="showCommentDialog">
+    <view class="popup_title">
+      {{ commentDialogTitle }}
+      <view class="popup_header_right">
+        <view class="icon-btn_close" @click="hideCommentDialog" title="关闭">
+          <text class="icon">✕</text>
+        </view>
+      </view>
+    </view>
+    <view class="popup_content">
+      <!-- 评论输入 -->
+      <view v-if="commentDialogType === 'add'" class="comment-input-section">
+        <textarea v-model="newCommentContent" placeholder="请输入评论内容..." class="comment-textarea"></textarea>
+      </view>
+      <!-- 评论列表 -->
+      <view v-else-if="commentDialogType === 'list'" class="all-comments-list">
+        <view v-for="(comment, index) in currentPageComments" :key="index" class="comment-item">
+          <view class="comment-header">
+            <text class="comment-username">{{ comment.username }}</text>
+            <text class="comment-time">{{ formatTime(comment.time) }}</text>
+          </view>
+          <view class="comment-content">{{ comment.content }}</view>
+          <view class="comment-actions" v-if="isCurrentUser(comment.userId)">
+            <text class="delete-comment-btn" @click="deleteComment(comment.id)">删除</text>
+          </view>
+        </view>
+        <view v-if="!currentPageComments || currentPageComments.length === 0" class="no-comments">
+          <text>暂无评论</text>
+        </view>
+        
+        <!-- 分页控件 -->
+        <view v-if="totalComments > 0" class="pagination">
+          <text class="page-info">共 {{ totalComments }} 条评论</text>
+          <view class="page-controls">
+            <text 
+              class="page-btn" 
+              :class="{ disabled: currentPage === 1 }" 
+              @click="prevPage"
+            >
+              上一页
+            </text>
+            <text class="page-current">{{ currentPage }} / {{ totalPages }}</text>
+            <text 
+              class="page-btn" 
+              :class="{ disabled: currentPage === totalPages }" 
+              @click="nextPage"
+            >
+              下一页
+            </text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="popup_bottom" v-if="commentDialogType === 'add'">
+      <button @click="hideCommentDialog" :disabled="isSubmitting">取消</button>
+      <button @click="submitComment" :disabled="!newCommentContent.trim() || isSubmitting">
+        {{ isSubmitting ? '发表中...' : '发表评论' }}
+      </button>
+    </view>
+  </view>
+
+  <!-- 待审核图片弹窗 -->
+  <view class="popup pending-images-popup" v-if="showPendingImagesDialog">
+    <view class="popup_title">
+      正在审核的图片
+      <view class="popup_header_right">
+        <view class="icon-btn_close" @click="hidePendingImagesDialog" title="关闭">
+          <text class="icon">✕</text>
+        </view>
+      </view>
+    </view>
+    <view class="popup_content">
+      <view v-if="pendingImages.length > 0" class="pending-images-list">
+        <view v-for="(image, index) in pendingImages" :key="index" class="pending-image-item">
+          <img :src="image.image" alt="待审核图片" class="pending-image" @click="openImagePreview(image.image)" />
+          <view class="pending-image-info">
+            <text class="pending-image-location">{{ image.name }}</text>
+            <text class="pending-image-time">{{ formatTime(image.time) }}</text>
+          </view>
+          <view class="pending-image-actions">
+            <text class="delete-pending-image-btn" @click="deletePendingImage(image.id)">删除</text>
+          </view>
+        </view>
+      </view>
+      <view v-else class="no-pending-images">
+        <text>暂无待审核图片</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 登录弹窗 -->
+  <view class="popup login-popup" v-if="showLoginDialog">
+    <view class="popup_title">
+      {{ loginMode === 'login' ? '登录' : '注册' }}
+      <view class="popup_header_right">
+        <view class="icon-btn_close" @click="hideLoginDialog" title="关闭">
+          <text class="icon">✕</text>
+        </view>
+      </view>
+    </view>
+    <view class="popup_content">
+      <!-- 登录/注册表单 -->
+      <view class="login-form">
+        <!-- 用户名输入 -->
+        <view class="form-item">
+          <text class="form-label">用户名</text>
+          <input 
+            v-model="loginUsername" 
+            type="text" 
+            placeholder="请输入用户名" 
+            class="form-input"
+          />
+        </view>
+        
+        <!-- 密码输入 -->
+        <view class="form-item">
+          <text class="form-label">密码</text>
+          <input
+            v-model="loginPassword"
+            type="password"
+            placeholder="请输入密码"
+            class="form-input"
+          />
+        </view>
+
+        <!-- 学号输入（仅注册时显示） -->
+        <view class="form-item" v-if="loginMode === 'register'">
+          <text class="form-label">手机号</text>
+          <input
+            v-model="loginStudentId"
+            type="text"
+            placeholder="请输入您的手机号"
+            class="form-input"
+          />
+        </view>
+
+        <!-- 错误提示 -->
+        <view v-if="loginError" class="error-message">
+          {{ loginError }}
+        </view>
+        
+        <!-- 登录/注册按钮 -->
+        <button 
+          @click="submitLogin" 
+          :disabled="isLoggingIn || !loginUsername.trim() || !loginPassword.trim()"
+          class="login-btn"
+        >
+          {{ isLoggingIn ? '处理中...' : (loginMode === 'login' ? '登录' : '注册') }}
+        </button>
+        
+        <!-- 切换登录/注册 -->
+        <view class="login-switch">
+          <text 
+            @click="switchLoginMode"
+            class="switch-text"
+          >
+            {{ loginMode === 'login' ? '没有账号？点击注册' : '已有账号？点击登录' }}
+          </text>
+        </view>
+      </view>
+    </view>
+  </view>
+
 </template>
 
 <script setup>
   import {
     ref,
     onMounted,
-    onUnmounted
+    onUnmounted,
+    computed
   } from "vue"
   import {
     apiRoutePlanning,
-    apiAddLocation,
-    apiGetLocationInfo,
-    apiGetLocationList
-  } from "@/api/apis.js"
+  apiAddLocation,
+  apiGetLocationInfo,
+  apiGetLocationList,
+  apiGetComments,
+  apiAddComment,
+  apiDeleteComment,
+  apiCheckLogin,
+  apiLogin,
+  apiRegister,
+  apiUploadImage,
+  apiAddPendingReviewImage,
+  apiGetPendingReviewImages,
+  apiDeletePendingReviewImage
+} from "@/api/apis.js"
   import mapConfig from "@/config/map.js"
   import {
     geocode,
@@ -253,6 +488,7 @@
   const navigationSteps = ref([])
   const isNavigating = ref(false)
   const currentStepIndex = ref(0)
+  const selectedMarker = ref(null) // 当前选中的标注
 
   // 路径规划相关对象
   const routeLines = ref([]) // 保存路线对象
@@ -296,6 +532,11 @@
   const touchStartDistance = ref(0)
   const touchStartScale = ref(1)
 
+  // 待审核图片相关
+  const showPendingImagesDialog = ref(false)
+  const pendingImages = ref([])
+  const isUploading = ref(false)
+
   // 轮播图相关
   const swiperCurrent = ref({})
   const touchStartX = ref({})
@@ -311,6 +552,32 @@
 
   // 备案链接悬停状态
   const hoverLink = ref('')
+
+  // 评论相关状态
+  const showCommentDialog = ref(false)
+  const commentDialogType = ref('add') // add: 添加评论, list: 查看所有评论
+  const commentDialogTitle = ref('发表评论')
+  const newCommentContent = ref('')
+  const currentSectionComments = ref([])
+  const currentSectionIndex = ref(-1)
+  // 分页相关状态
+  const currentPage = ref(1)
+  const pageSize = ref(10)
+  const totalComments = ref(0)
+  
+  // 登录相关状态
+  const showLoginDialog = ref(false)
+  const loginUsername = ref('')
+  const loginPassword = ref('')
+  const loginError = ref('')
+  const isLoggingIn = ref(false)
+  const loginMode = ref('login') // login: 登录, register: 注册
+  const loginStudentId = ref('') // 学号（仅注册时使用，不传到后端
+  const currentUserId = ref(null)
+  const isLoggedIn = ref(false)
+  const username = ref('')
+  const showUserMenu = ref(false)
+  const isSubmitting = ref(false) // 评论提交状态
 
   // 打开备案链接（在新窗口打开）
   function openBeianLink(url) {
@@ -550,6 +817,9 @@
     // 添加地图点击事件监听器，获取并显示经纬度
     map.value.on("click", function(e) {
       console.log('地图点击事件参数:', e)
+      
+      // 隐藏用户下拉菜单
+      showUserMenu.value = false
 
       // 获取点击位置的经纬度
       const lng = e.lnglat.getLng()
@@ -654,6 +924,25 @@
       }, 300);
     }
 
+    // 恢复之前选中的标注样式
+    if (selectedMarker.value) {
+      selectedMarker.value.setIcon(new AMap.Icon({
+        size: new AMap.Size(12, 20),
+        image: "//webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+        imageSize: new AMap.Size(12, 20)
+      }));
+    }
+
+    // 高亮当前点击的标注
+    this.setIcon(new AMap.Icon({
+      size: new AMap.Size(16, 26),
+      image: "//webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
+      imageSize: new AMap.Size(16, 26)
+    }));
+
+    // 存储当前选中的标注
+    selectedMarker.value = this;
+
     // 获取标注的id
     const markerId = this.getExtData().id;
     console.log('标注id:', markerId);
@@ -682,12 +971,14 @@
               sections.push({
                 images: subLocation.images || [],
                 description: subLocation.introduction || '',
-                name: subLocation.name || ''
+                name: subLocation.name || '',
+                subLocationId: subLocation.id
               });
             });
           }
 
           const locationData = {
+            id: res.data.id,
             name: res.data.name,
             description: res.data.description,
             information: res.data.information,
@@ -769,6 +1060,10 @@
       currentLocation.value = location;
       showPopup.value = true;
       console.log('2. 使用传入的location数据')
+      // 加载评论
+      setTimeout(() => {
+        loadAllComments()
+      }, 100)
     } else {
       // 从后端接口获取数据（这里使用默认ID 1，实际应该根据具体地点动态获取）
       console.log('2. 从后端接口获取数据')
@@ -790,13 +1085,15 @@
               res.data.subLocations.forEach(subLocation => {
                 sections.push({
                   images: subLocation.images || [],
-                  description: subLocation.introduction || ''
+                  description: subLocation.introduction || '',
+                  subLocationId: subLocation.id
                 });
               });
             }
 
             // 创建位置数据，不包含position信息（因为在这个分支中没有标注对象）
             const locationData = {
+              id: res.data.id,
               name: res.data.name,
               description: res.data.description, // 保存主地点的description
               subLocations: res.data.subLocations, // 保存副地点信息
@@ -805,6 +1102,10 @@
             currentLocation.value = locationData;
             showPopup.value = true;
             console.log('4. 后端数据转换后:', currentLocation.value)
+            // 加载评论
+            setTimeout(() => {
+              loadAllComments()
+            }, 100)
           } else {
             // 如果后端数据获取失败，显示错误提示
             console.log('4. 后端数据获取失败，显示错误提示')
@@ -1138,7 +1439,7 @@
   }
 
   //获取当前位置功能
-  function locateMe(callback) {
+  function locateMe() {
     // 设置定位中状态
     isLocating.value = true;
 
@@ -1150,7 +1451,6 @@
         icon: 'none'
       });
       isLocating.value = false;
-      if (callback) callback(false);
       return;
     }
 
@@ -1221,9 +1521,6 @@
         // 设置地图中心和缩放级别
         map.value.setCenter([jing.value, wei.value]);
         map.value.setZoom(18);
-
-        // 执行回调函数
-        if (callback) callback(true, [jing.value, wei.value]);
       } else {
         console.error('定位失败:', status, result);
         let errorMessage = '定位失败，请检查定位权限';
@@ -1236,7 +1533,6 @@
           title: errorMessage,
           icon: 'none'
         });
-        if (callback) callback(false);
       }
     });
   }
@@ -1502,6 +1798,16 @@
     showPopup.value = false;
     // 清除当前选中的地点，避免下次打开弹窗时显示旧数据
     currentLocation.value = null;
+    
+    // 恢复选中标注的原始样式
+    if (selectedMarker.value) {
+      selectedMarker.value.setIcon(new AMap.Icon({
+        size: new AMap.Size(12, 20),
+        image: "//webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+        imageSize: new AMap.Size(12, 20)
+      }));
+      selectedMarker.value = null;
+    }
   }
 
 
@@ -1589,6 +1895,593 @@
           icon: 'none'
         })
       })
+  }
+
+  // 评论相关方法
+  // 检查登录状态
+  function checkLoginStatus() {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log('开始检查登录状态')
+        // 从本地存储中获取用户信息
+        const userId = uni.getStorageSync('userId')
+        const storedUsername = uni.getStorageSync('username')
+        console.log('本地存储用户信息:', { userId, storedUsername })
+
+        if (userId && storedUsername) {
+          // 本地存储中有用户信息，认为已登录
+          isLoggedIn.value = true
+          currentUserId.value = userId
+          username.value = storedUsername
+          console.log('本地存储中有用户信息，认为已登录')
+          resolve(true)
+        } else {
+          // 本地存储中没有用户信息，认为未登录
+          isLoggedIn.value = false
+          currentUserId.value = null
+          username.value = ''
+          console.log('本地存储中没有用户信息，认为未登录')
+          resolve(false)
+        }
+      } catch (error) {
+        console.error('检查登录状态时发生错误:', error)
+        isLoggedIn.value = false
+        currentUserId.value = null
+        username.value = ''
+        resolve(false)
+      }
+    })
+  }
+
+  // 退出登录
+  function logout() {
+    uni.removeStorageSync('userId')
+    uni.removeStorageSync('username')
+    isLoggedIn.value = false
+    currentUserId.value = null
+    username.value = ''
+    showUserMenu.value = false // 退出登录后关闭菜单
+    uni.showToast({
+      title: '已退出登录',
+      icon: 'success'
+    })
+  }
+
+  // 上传图片
+  function uploadImage(sectionIndex) {
+    // 检查是否登录
+    if (!isLoggedIn.value) {
+      showLoginDialog.value = true
+      return
+    }
+
+    // 选择图片
+    uni.chooseImage({
+      count: 1,
+      sizeType: ['original', 'compressed'],
+      sourceType: ['album', 'camera'],
+      success: function(res) {
+        const tempFilePaths = res.tempFilePaths
+        isUploading.value = true
+
+        // 上传图片到服务器
+        uni.uploadFile({
+          url: 'http://localhost:8080/user/common/upload',
+          filePath: tempFilePaths[0],
+          name: 'file',
+          success: function(uploadRes) {
+            try {
+              const uploadResult = JSON.parse(uploadRes.data)
+              console.log('上传图片响应:', uploadResult)
+              if (uploadResult.code === 1) {
+                const imageUrl = uploadResult.data
+                console.log('后端返回的图片URL:', imageUrl)
+                const section = currentLocation.value?.sections[sectionIndex]
+                
+                // 准备待审核图片数据
+                const pendingImageData = {
+                  userId: currentUserId.value,
+                  locationId: section.subLocationId ? null : currentLocation.value.id,
+                  subLocationId: section.subLocationId || null,
+                  url: imageUrl,
+                  locationName: section.subLocationId ? null : currentLocation.value.name,
+                  subLocationName: section.subLocationId ? section.name : null
+                }
+
+                // 添加到待审核图片表
+                apiAddPendingReviewImage(pendingImageData)
+                  .then(addRes => {
+                    if (addRes.code === 1) {
+                      uni.showToast({
+                        title: '图片已提交审核',
+                        icon: 'success'
+                      })
+                    } else {
+                      uni.showToast({
+                        title: '提交失败: ' + (addRes.msg || '未知错误'),
+                        icon: 'none'
+                      })
+                    }
+                  })
+                  .catch(err => {
+                    console.error('添加待审核图片失败:', err)
+                    uni.showToast({
+                      title: '网络错误，提交失败',
+                      icon: 'none'
+                    })
+                  })
+              } else {
+                uni.showToast({
+                  title: '上传失败: ' + (uploadResult.msg || '未知错误'),
+                  icon: 'none'
+                })
+              }
+            } catch (e) {
+              console.error('解析上传结果失败:', e)
+              uni.showToast({
+                title: '上传失败，服务器返回格式错误',
+                icon: 'none'
+              })
+            }
+          },
+          fail: function(err) {
+            console.error('上传图片失败:', err)
+            uni.showToast({
+              title: '上传失败，请重试',
+              icon: 'none'
+            })
+          },
+          complete: function() {
+            isUploading.value = false
+          }
+        })
+      },
+      fail: function(err) {
+        console.error('选择图片失败:', err)
+      }
+    })
+  }
+
+  // 显示待审核图片
+  function showPendingImages() {
+    console.log('showPendingImages 函数被调用')
+    console.log('isLoggedIn.value:', isLoggedIn.value)
+    console.log('currentUserId.value:', currentUserId.value)
+    console.log('showPendingImagesDialog.value:', showPendingImagesDialog.value)
+    
+    if (!isLoggedIn.value) {
+      console.log('用户未登录，显示登录弹窗')
+      showLoginDialog.value = true
+      console.log('showLoginDialog.value:', showLoginDialog.value)
+      return
+    }
+
+    console.log('用户已登录，获取待审核图片列表')
+    
+    // 先显示弹窗，避免接口请求延迟导致用户感觉无反应
+    console.log('显示待审核图片弹窗')
+    showPendingImagesDialog.value = true
+    console.log('showPendingImagesDialog.value:', showPendingImagesDialog.value)
+    
+    // 获取待审核图片列表
+    apiGetPendingReviewImages(currentUserId.value)
+      .then(res => {
+        console.log('获取待审核图片列表响应:', res)
+        if (res.code === 1) {
+          console.log('获取待审核图片列表成功:', res.data)
+          console.log('待审核图片数量:', res.data.length)
+          if (res.data.length > 0) {
+            console.log('第一张图片数据:', res.data[0])
+            console.log('第一张图片URL:', res.data[0].imageUrl)
+          }
+          pendingImages.value = res.data
+        } else {
+          uni.showToast({
+            title: '获取待审核图片失败: ' + (res.msg || '未知错误'),
+            icon: 'none'
+          })
+        }
+      })
+      .catch(err => {
+        console.error('获取待审核图片失败:', err)
+        uni.showToast({
+          title: '网络错误，获取失败',
+          icon: 'none'
+        })
+      })
+  }
+
+  // 隐藏待审核图片弹窗
+  function hidePendingImagesDialog() {
+    showPendingImagesDialog.value = false
+  }
+
+  // 删除待审核图片
+  function deletePendingImage(id) {
+    uni.showModal({
+      title: '确认删除',
+      content: '确定要删除这张待审核的图片吗？',
+      success: function(modalRes) {
+        if (modalRes.confirm) {
+          apiDeletePendingReviewImage(id)
+            .then(res => {
+              if (res.code === 1) {
+                uni.showToast({
+                  title: '删除成功',
+                  icon: 'success'
+                })
+                // 重新获取待审核图片列表
+                apiGetPendingReviewImages(currentUserId.value)
+                  .then(res => {
+                    if (res.code === 1) {
+                      pendingImages.value = res.data
+                    }
+                  })
+              } else {
+                uni.showToast({
+                  title: '删除失败: ' + (res.msg || '未知错误'),
+                  icon: 'none'
+                })
+              }
+            })
+            .catch(err => {
+              console.error('删除待审核图片失败:', err)
+              uni.showToast({
+                title: '网络错误，删除失败',
+                icon: 'none'
+              })
+            })
+        }
+      }
+    })
+  }
+
+  // 切换用户菜单
+  function toggleUserMenu() {
+    showUserMenu.value = !showUserMenu.value
+  }
+
+  // 处理点击屏幕任意地方后隐藏下拉列表
+  function handleClickOutside() {
+    showUserMenu.value = false
+  }
+
+  // 显示添加评论弹窗
+  function showAddCommentDialog() {
+    console.log('开始显示添加评论弹窗')
+    console.log('检查登录状态结果:', isLoggedIn.value)
+    if (!isLoggedIn.value) {
+      // 显示登录弹窗
+      console.log('用户未登录，显示登录弹窗')
+      showLoginDialog.value = true
+      return
+    }
+    console.log('用户已登录，显示评论弹窗')
+    currentSectionIndex.value = -1
+    commentDialogType.value = 'add'
+    commentDialogTitle.value = '发表评论'
+    newCommentContent.value = ''
+    showCommentDialog.value = true
+  }
+
+  // 显示所有评论
+  function showAllComments() {
+    currentSectionComments.value = currentLocation.value.comments || []
+    totalComments.value = currentSectionComments.value.length
+    currentPage.value = 1
+    currentSectionIndex.value = -1
+    commentDialogType.value = 'list'
+    commentDialogTitle.value = '所有评论'
+    showCommentDialog.value = true
+  }
+  
+  // 计算当前页的评论
+  const currentPageComments = computed(() => {
+    if (!currentSectionComments.value || currentSectionComments.value.length === 0) {
+      return []
+    }
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    return currentSectionComments.value.slice(start, end)
+  })
+  
+  // 计算总页数
+  const totalPages = computed(() => {
+    return Math.ceil(totalComments.value / pageSize.value)
+  })
+  
+  // 切换到上一页
+  function prevPage() {
+    if (currentPage.value > 1) {
+      currentPage.value--
+    }
+  }
+  
+  // 切换到下一页
+  function nextPage() {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++
+    }
+  }
+  
+  // 跳转到指定页
+  function goToPage(page) {
+    if (page >= 1 && page <= totalPages.value) {
+      currentPage.value = page
+    }
+  }
+
+  // 隐藏评论弹窗
+  function hideCommentDialog() {
+    showCommentDialog.value = false
+    newCommentContent.value = ''
+    currentSectionComments.value = []
+    currentSectionIndex.value = -1
+  }
+
+  // 提交评论
+  function submitComment() {
+    if (!newCommentContent.value.trim()) {
+      uni.showToast({
+        title: '请输入评论内容',
+        icon: 'none'
+      })
+      return
+    }
+
+    const locationId = currentLocation.value.id || 0
+    console.log('提交评论 - 传入的locationId:', locationId)
+
+    const commentData = {
+      userId: currentUserId.value,
+      locationId: locationId,
+      content: newCommentContent.value.trim()
+    }
+    console.log('提交评论 - 传入的评论数据:', commentData)
+
+    // 设置提交状态为true
+    isSubmitting.value = true
+
+    apiAddComment(commentData)
+      .then(res => {
+        console.log('提交评论响应:', res)
+        if (res.code === 1) {
+          uni.showToast({
+            title: '已发表评论',
+            icon: 'success'
+          })
+          // 重新加载评论
+          loadCommentsForSection()
+          hideCommentDialog()
+        } else if (res.code === 0) {
+          // 状态码为0时，跳出弹窗显示后端返回的msg
+          uni.showModal({
+            title: '提示',
+            content: res.msg || '评论失败',
+            showCancel: false,
+            success: function(res) {
+              if (res.confirm) {
+                console.log('用户点击确定');
+              }
+            }
+          })
+        } else {
+          uni.showModal({
+            title: '提示',
+            content: res.msg || '评论失败',
+            showCancel: false,
+            success: function(res) {
+              if (res.confirm) {
+                console.log('用户点击确定');
+              }
+            }
+          })
+        }
+      })
+      .catch(err => {
+        console.error('评论失败:', err)
+        uni.showToast({
+          title: '网络错误，评论失败',
+          icon: 'none'
+        })
+      })
+      .finally(() => {
+        // 无论成功还是失败，都设置提交状态为false
+        isSubmitting.value = false
+      })
+  }
+  
+  // 隐藏登录弹窗
+  function hideLoginDialog() {
+    showLoginDialog.value = false
+    loginError.value = ''
+    isLoggingIn.value = false
+    loginStudentId.value = ''
+  }
+  
+  // 提交登录/注册
+  function submitLogin() {
+    if (!loginUsername.value.trim() || !loginPassword.value.trim()) {
+      loginError.value = '请输入用户名和密码'
+      return
+    }
+
+    // 注册模式下验证学号（只需输入，不做格式校验）
+    if (loginMode.value === 'register') {
+      if (!loginStudentId.value.trim()) {
+        loginError.value = '请输入手机号'
+        return
+      }
+    }
+
+    isLoggingIn.value = true
+    loginError.value = ''
+    
+    const userData = {
+      username: loginUsername.value.trim(),
+      password: loginPassword.value.trim()
+    }
+    
+    console.log('提交登录/注册 - 传入的数据:', userData)
+    
+    const apiMethod = loginMode.value === 'login' ? apiLogin : apiRegister
+    
+    apiMethod(userData)
+      .then(res => {
+        console.log('登录/注册响应:', res)
+        if (res.code === 1) {
+          // 登录/注册成功
+          uni.showToast({
+            title: loginMode.value === 'login' ? '登录成功' : '注册成功',
+            icon: 'success'
+          })
+          
+          // 保存用户信息到本地存储
+          const userId = res.data?.id || ''
+          const usernameVal = res.data?.username || loginUsername.value.trim()
+          uni.setStorageSync('userId', userId)
+          uni.setStorageSync('username', usernameVal)
+          
+          // 更新登录状态
+          isLoggedIn.value = true
+          currentUserId.value = userId
+          username.value = usernameVal // 关键：更新响应式变量
+          
+          // 隐藏登录弹窗
+          hideLoginDialog()
+		  showUserMenu.value = false
+        } else {
+          // 登录/注册失败
+          loginError.value = res.msg || (loginMode.value === 'login' ? '登录失败' : '注册失败')
+        }
+      })
+      .catch(err => {
+        console.error('登录/注册失败:', err)
+        loginError.value = '网络错误，' + (loginMode.value === 'login' ? '登录' : '注册') + '失败'
+      })
+      .finally(() => {
+        isLoggingIn.value = false
+      })
+  }
+  
+  // 切换登录/注册模式
+  function switchLoginMode() {
+    loginMode.value = loginMode.value === 'login' ? 'register' : 'login'
+    loginError.value = ''
+  }
+
+  // 删除评论
+  function deleteComment(commentId) {
+    console.log('开始删除评论:', commentId)
+    console.log('检查登录状态结果:', isLoggedIn.value)
+    if (!isLoggedIn.value) {
+      // 显示登录弹窗
+      console.log('用户未登录，显示登录弹窗')
+      showLoginDialog.value = true
+      return
+    }
+    
+    console.log('用户已登录，显示删除确认弹窗')
+    uni.showModal({
+      title: '确认删除',
+      content: '确定要删除这条评论吗？',
+      success: (res) => {
+        console.log('删除确认弹窗结果:', res)
+        if (res.confirm) {
+          console.log('用户确认删除，调用删除评论接口')
+          apiDeleteComment(commentId)
+            .then(res => {
+              console.log('删除评论接口响应:', res)
+              if (res && res.code === 1) {
+                console.log('删除评论成功')
+                uni.showToast({
+                  title: '删除成功',
+                  icon: 'success'
+                })
+                // 重新加载评论
+                loadCommentsForSection()
+                // 更新所有评论弹窗的评论列表
+                if (commentDialogType.value === 'list') {
+                  reloadAllCommentsForDialog()
+                }
+              } else {
+                console.log('删除评论失败:', res && res.msg)
+                uni.showToast({
+                  title: (res && res.msg) || '删除失败',
+                  icon: 'none'
+                })
+              }
+            })
+            .catch(err => {
+              console.error('删除评论失败:', err)
+              uni.showToast({
+                title: '网络错误，删除失败',
+                icon: 'none'
+              })
+            })
+        }
+      }
+    })
+  }
+
+  // 加载评论
+  function loadCommentsForSection(sectionIndex) {
+    const locationId = currentLocation.value.id || 0
+    console.log('加载评论 - 传入的locationId:', locationId)
+
+    apiGetComments(locationId)
+      .then(res => {
+        console.log('获取评论响应:', res)
+        if (res.code === 1 && res.data) {
+          // 先清空再赋值，确保响应式更新
+          currentLocation.value.comments = []
+          setTimeout(() => {
+            currentLocation.value.comments = res.data
+          }, 0)
+        }
+      })
+      .catch(err => {
+        console.error('获取评论失败:', err)
+      })
+  }
+
+  // 加载所有评论
+  function loadAllComments() {
+    if (currentLocation.value) {
+      // 只为主地点加载评论
+      loadCommentsForSection()
+    }
+  }
+
+  // 重新加载所有评论到弹窗
+  function reloadAllCommentsForDialog() {
+    const locationId = currentLocation.value.id || 0
+    apiGetComments(locationId)
+      .then(res => {
+        if (res.code === 1 && res.data) {
+          currentSectionComments.value = res.data
+          totalComments.value = res.data.length
+          // 如果当前页超过总页数，回退到最后一页
+          if (currentPage.value > totalPages.value) {
+            currentPage.value = Math.max(1, totalPages.value)
+          }
+        }
+      })
+      .catch(err => {
+        console.error('获取评论失败:', err)
+      })
+  }
+
+  // 格式化时间
+  function formatTime(timeString) {
+    if (!timeString) return ''
+    const date = new Date(timeString)
+    return date.toLocaleString()
+  }
+
+  // 检查是否是当前用户
+  function isCurrentUser(userId) {
+    return isLoggedIn.value && currentUserId.value === userId
   }
 
   // 打开图片预览
@@ -1759,16 +2652,54 @@
           }
         });
 
-        // 模拟点击事件，打开地点信息弹窗
-        const event = {
-          lnglat: new AMap.LngLat(result.longitude, result.latitude)
-        };
-        handleMarkerClick.call({
-          getExtData: () => ({
-            id: result.id
-          }),
-          getPosition: () => position
-        }, event);
+        // 找到匹配的标注并高亮显示
+        let targetMarker = null;
+        for (const marker of customMarkers.value) {
+          const markerId = marker.getExtData().id;
+          if (markerId === result.id) {
+            targetMarker = marker;
+            break;
+          }
+        }
+
+        if (targetMarker) {
+          // 恢复之前选中的标注样式
+          if (selectedMarker.value) {
+            selectedMarker.value.setIcon(new AMap.Icon({
+              size: new AMap.Size(12, 20),
+              image: "//webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+              imageSize: new AMap.Size(12, 20)
+            }));
+          }
+
+          // 高亮当前点击的标注
+          targetMarker.setIcon(new AMap.Icon({
+            size: new AMap.Size(16, 26),
+            image: "//webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
+            imageSize: new AMap.Size(16, 26)
+          }));
+
+          // 存储当前选中的标注
+          selectedMarker.value = targetMarker;
+
+          // 调用handleMarkerClick打开地点信息弹窗
+          const event = {
+            lnglat: new AMap.LngLat(result.longitude, result.latitude)
+          };
+          handleMarkerClick.call(targetMarker, event);
+        } else {
+          // 如果没有找到匹配的标注，使用模拟对象
+          // 模拟点击事件，打开地点信息弹窗
+          const event = {
+            lnglat: new AMap.LngLat(result.longitude, result.latitude)
+          };
+          handleMarkerClick.call({
+            getExtData: () => ({
+              id: result.id
+            }),
+            getPosition: () => position
+          }, event);
+        }
       }
     }
   }
@@ -1801,6 +2732,9 @@
 
     // 开始检测
     checkAMap();
+    
+    // 页面加载时检查登录状态
+    checkLoginStatus();
   });
 </script>
 
@@ -2030,7 +2964,7 @@
     border-radius: 20rpx;
     box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.2);
     padding: 0;
-    z-index: 9999;
+    z-index: 999;
     display: flex;
     flex-direction: column;
     /* 确保弹窗始终可见 */
@@ -2176,9 +3110,9 @@
         background-color: #007AFF;
         color: white;
         border: none;
-        padding: 15rpx 60rpx;
-        border-radius: 60rpx;
-        font-size: 28rpx;
+        padding: 10rpx 60rpx;
+        border-radius: 20rpx;
+        font-size: 25rpx;
         margin: 0 10rpx;
       }
     }
@@ -2190,6 +3124,7 @@
     top: 0;
     width: 25vw;
     max-height: 75vh;
+    z-index: 100;
   }
 
   /* 路径规划弹窗 */
@@ -2343,12 +3278,136 @@
     width: 100%;
     aspect-ratio: 16/9;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background-color: #f5f5f5;
     border-radius: 12rpx;
     color: #999;
     margin-bottom: 20rpx;
+  }
+
+  /* 上传图片按钮 */
+  .upload-image-btn {
+    background-color: #409eff;
+    color: white;
+    padding: 15rpx 30rpx;
+    border-radius: 8rpx;
+    font-size: 28rpx;
+    text-align: center;
+    margin-top: 15rpx;
+    margin-bottom: 20rpx;
+    cursor: pointer;
+  }
+
+  .upload-image-btn:hover {
+    background-color: #66b1ff;
+  }
+
+  /* 无图片状态 */
+  .no-images {
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+    border-radius: 12rpx;
+    color: #999;
+    margin-bottom: 20rpx;
+  }
+
+  /* 待审核图片弹窗样式 */
+  .pending-images-popup {
+    width: 90vw;
+    max-width: 600rpx;
+    background-color: white;
+    border-radius: 20rpx;
+    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.2);
+    padding: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    .popup_title {
+      color: #333;
+      border-bottom: 1px solid #e8e8e8;
+    }
+
+    .icon-btn_close .icon {
+      color: #333;
+    }
+  }
+
+  .pending-images-list {
+    max-height: 600rpx;
+    overflow-y: auto;
+  }
+
+  .pending-image-item {
+    display: flex;
+    align-items: center;
+    padding: 20rpx;
+    background-color: #f9f9f9;
+    border-radius: 12rpx;
+    margin-bottom: 15rpx;
+  }
+
+  .pending-image {
+    width: 120rpx;
+    height: 120rpx;
+    object-fit: cover;
+    border-radius: 8rpx;
+    margin-right: 20rpx;
+    display: block;
+  }
+
+  .pending-image-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .pending-image-location {
+    font-size: 30rpx;
+    color: #333;
+    font-weight: bold;
+    margin-right: 20rpx;
+  }
+
+  .pending-image-time {
+    font-size: 24rpx;
+    color: #999;
+  }
+
+  .pending-image-actions {
+    margin-left: 20rpx;
+  }
+
+  .delete-pending-image-btn {
+    color: #ff4d4f;
+    font-size: 28rpx;
+    cursor: pointer;
+    padding: 10rpx 20rpx;
+    border-radius: 8rpx;
+    background-color: #fff1f0;
+  }
+
+  .delete-pending-image-btn:hover {
+    color: #ff7875;
+    background-color: #fff2f0;
+  }
+
+  .no-pending-images {
+    text-align: center;
+    padding: 60rpx 0;
+    color: #999;
+    font-size: 32rpx;
   }
 
   /* 文字介绍样式 */
@@ -2433,8 +3492,6 @@
       height: 100%;
       right: 0;
       bottom: 0;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
 
       .coze-iframe-header {
         padding: 24rpx 32rpx;
@@ -2738,7 +3795,7 @@
   .form-item text {
     width: 120rpx;
     font-size: 28rpx;
-    color: #333;
+    color: #ffffff;
   }
 
   .form-item input {
@@ -2866,4 +3923,376 @@
     margin: 0 8rpx;
     font-size: 20rpx;
   }
+
+  /* 评论相关样式 */
+  .comments-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+  }
+
+  .comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .comments-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .username-display {
+    font-size: 14px;
+    color: #ccc;
+  }
+
+  .add-comment-btn {
+    font-size: 14px;
+    color: #1890ff;
+    cursor: pointer;
+  }
+
+  .add-comment-btn:hover {
+    text-decoration: underline;
+  }
+
+  .logout-btn {
+    font-size: 14px;
+    color: #ff4d4f;
+    cursor: pointer;
+  }
+
+  .logout-btn:hover {
+    text-decoration: underline;
+  }
+
+  .comments-list {
+    margin-bottom: 15px;
+  }
+
+  .comment-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+  }
+
+  .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .comment-username {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .comment-time {
+    font-size: 12px;
+    color: #999;
+  }
+
+  .comment-content {
+    font-size: 16px;
+    color: #ddd;
+    line-height: 1.5;
+    margin-bottom: 5px;
+  }
+
+  .comment-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .delete-comment-btn {
+    font-size: 12px;
+    color: #ff4d4f;
+    cursor: pointer;
+  }
+
+  .delete-comment-btn:hover {
+    text-decoration: underline;
+  }
+
+  .view-more-comments {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .view-more-comments text {
+    font-size: 14px;
+    color: #1890ff;
+    cursor: pointer;
+  }
+
+  .view-more-comments text:hover {
+    text-decoration: underline;
+  }
+
+  .no-comments {
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+    padding: 20px 0;
+  }
+
+  /* 评论弹窗样式 */
+  .comment-popup {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 40vw;
+    padding: 30px;
+  }
+
+  .comment-input-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .comment-textarea {
+    width: 100%;
+    height: 150px;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-size: 16px;
+    resize: none;
+    background-color: #333;
+    color: #fff;
+  }
+
+  .all-comments-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  /* 用户操作按钮样式 */
+  .user-btn-container {
+    position: relative;
+  }
+
+  .user-menu {
+    position: absolute;
+    bottom: 10px;
+    left: 60px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    min-width: 120px;
+    overflow: hidden;
+    z-index: 9999;
+  }
+
+  .user-menu-item {
+    padding: 12px 16px;
+    text-align: center;
+    cursor: pointer;
+    color: #333;
+  }
+
+  .user-menu-item:hover {
+    background-color: #f5f5f5;
+  }
+
+  .username-item {
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+  }
+
+  /* 移动端适配 */
+  @media screen and (max-width: 768px) {
+    .comment-popup {
+      width: 90vw;
+      padding: 20px;
+    }
+
+    .comments-section {
+      margin-top: 15px;
+      padding-top: 10px;
+    }
+
+    .comments-header {
+      margin-bottom: 10px;
+    }
+
+    .comments-title {
+      font-size: 14px;
+    }
+
+    .add-comment-btn {
+      font-size: 12px;
+    }
+
+    .logout-btn {
+      font-size: 12px;
+    }
+
+    .username-display {
+      font-size: 12px;
+    }
+
+    .comment-item {
+      padding: 8px 0;
+    }
+
+    .comment-username {
+      font-size: 12px;
+    }
+
+    .comment-time {
+      font-size: 10px;
+    }
+
+    .comment-content {
+      font-size: 14px;
+    }
+
+    .delete-comment-btn {
+      font-size: 10px;
+    }
+
+    .view-more-comments text {
+      font-size: 12px;
+    }
+
+    .no-comments {
+      font-size: 12px;
+      padding: 15px 0;
+    }
+
+    .comment-textarea {
+      height: 100px;
+      font-size: 14px;
+    }
+  }
+  
+  /* 登录弹窗样式 */
+  .login-popup {
+    width: 90%;
+    max-width: 400px;
+    border-radius: 8px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  /* 分页控件样式 */
+  .pagination {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+  }
+  
+  .page-info {
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    color: #ccc;
+    margin-bottom: 10px;
+  }
+  
+  .page-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .page-btn {
+    font-size: 12px;
+    color: #1890ff;
+    cursor: pointer;
+  }
+  
+  .page-btn:hover {
+    text-decoration: underline;
+  }
+  
+  .page-btn.disabled {
+    color: #999;
+    cursor: not-allowed;
+  }
+  
+  .page-btn.disabled:hover {
+    text-decoration: none;
+  }
+  
+  .page-current {
+    font-size: 12px;
+    color: #fff;
+  }
+  
+  .login-form {
+    padding: 20rpx 0;
+  }
+  
+  .form-item {
+    margin-bottom: 20rpx;
+  }
+  
+  .form-label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8rpx;
+    color: #333;
+  }
+  
+  .form-input {
+    width: 100%;
+    height: 48rpx;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0 12rpx;
+    font-size: 14px;
+  }
+  
+  .error-message {
+    color: #ff4d4f;
+    font-size: 12px;
+    margin-bottom: 16rpx;
+  }
+  
+  .login-btn {
+    width: 100%;
+    height: 70rpx;
+    background-color: #1890ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 16rpx;
+  }
+  
+  .login-btn:disabled {
+    background-color: #d9d9d9;
+    cursor: not-allowed;
+  }
+  
+  .login-switch {
+    text-align: center;
+  }
+  
+  .switch-text {
+    font-size: 12px;
+    color: #1890ff;
+    cursor: pointer;
+  }
+  
+  .switch-text:hover {
+    text-decoration: underline;
+  }
+
 </style>

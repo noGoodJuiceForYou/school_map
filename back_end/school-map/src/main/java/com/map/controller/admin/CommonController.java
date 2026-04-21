@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.UUID;
 
-@RestController
+@RestController("admin-common")
 @RequestMapping("/admin/common")
 @Slf4j
 public class CommonController {
@@ -26,6 +26,7 @@ public class CommonController {
         String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String objectName = UUID.randomUUID() + extension;
         String filePath = aliOssUtil.upload(file.getBytes(), objectName);
+        log.info("文件上传到:{}", filePath);
         return Result.success(filePath);
     }
 }

@@ -21,7 +21,8 @@ public class LoginController {
     @PostMapping("/user/login")
     public Result login(@RequestBody User user) {
         log.info("登录：{}", user);
-        LoginInfo loginInfo = userService.login(user);
+        LoginInfo loginInfo = userService.loginForC(user);
+        System.out.println(loginInfo);
         if (loginInfo != null) {
             return Result.success(loginInfo);
         }

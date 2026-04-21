@@ -1,33 +1,11 @@
 import { request } from "@/utils/request.js"
 
-// 登录接口
-export function apiGetlogin(data) {
-	return request({
-		url: "/api/user/login",
-		method: 'POST',
-		header: {
-			'Content-Type': 'application/json'
-		},
-		data: data
-	})
-}
 
-// 注册接口
-export function apiRegister(data) {
-	return request({
-		url: "/api/user/register",
-		method: 'POST',
-		header: {
-			'Content-Type': 'application/json'
-		},
-		data: data
-	})
-}
 
 // 获取地点信息接口
 export function apiGetLocationInfo(id) {
 	return request({
-		url: `/api/user/location/${id}`,
+		url: `/user/location/${id}`,
 		method: 'GET'
 	})
 }
@@ -35,7 +13,7 @@ export function apiGetLocationInfo(id) {
 // 添加父地点接口
 export function apiAddLocation(data) {
 	return request({
-		url: '/api/admin/location/add',
+		url: '/admin/location/add',
 		method: 'POST',
 		header: {
 			'Content-Type': 'application/json'
@@ -47,7 +25,7 @@ export function apiAddLocation(data) {
 // 获取所有地点列表接口
 export function apiGetLocationList() {
 	return request({
-		url: '/api/user/location/list',
+		url: '/user/location/list',
 		method: 'GET'
 	})
 }
@@ -123,7 +101,7 @@ export function apiRoutePlanning(data){
 					// 确保坐标格式正确
 				let originPoint, destinationPoint;
 				
-				// 检查是否已经是AMap.LngLat对象
+					// 检查是否已经是AMap.LngLat对象
 				if (origin instanceof AMap.LngLat) {
 					originPoint = origin;
 				} else if (Array.isArray(origin) && origin.length === 2) {
@@ -202,4 +180,107 @@ export function apiRoutePlanning(data){
 			}
 		}
 	});
+}
+
+// 获取评论列表
+export function apiGetComments(locationId) {
+	return request({
+		url: '/user/comment/list',
+		method: 'GET',
+		params: { locationId }
+	})
+}
+
+// 添加评论
+export function apiAddComment(data) {
+	return request({
+		url: '/user/comment/add',
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		data: data
+	})
+}
+
+// 删除评论
+export function apiDeleteComment(id) {
+	return request({
+		url: `/user/comment/delete/${id}`,
+		method: 'DELETE'
+	})
+}
+
+// 检查登录状态
+export function apiCheckLogin() {
+	return request({
+		url: '/user/login/check',
+		method: 'GET'
+	})
+}
+
+// 用户登录
+export function apiLogin(data) {
+	return request({
+		url: '/user/login',
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		data: data
+	})
+}
+
+// 用户注册
+export function apiRegister(data) {
+	return request({
+		url: '/user/register',
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		data: data
+	})
+}
+
+// 上传图片
+export function apiUploadImage(file) {
+	const formData = new FormData()
+	formData.append('file', file)
+	return request({
+		url: '/admin/common/upload',
+		method: 'POST',
+		headers: {
+			'Content-Type': 'multipart/form-data'
+		},
+		data: formData
+	})
+}
+
+// 添加待审核图片
+export function apiAddPendingReviewImage(data) {
+	return request({
+		url: '/user/pendingReviewImages/add',
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		data: data
+	})
+}
+
+// 获取待审核图片列表
+export function apiGetPendingReviewImages(userId) {
+	return request({
+		url: `/user/pendingReviewImages/list?userId=${userId}`,
+		method: 'GET'
+	})
+}
+
+// 删除待审核图片
+export function apiDeletePendingReviewImage(id) {
+	return request({
+		url: `/user/pendingReviewImages/delete?id=${id}`,
+		method: 'DELETE'
+	})
 }

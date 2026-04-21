@@ -58,4 +58,5 @@ public interface SubLocationInfoMapper {
      * @param subLocationInfoDTO
      */
     void updateSubLocation(SubLocationInfoDTO subLocationInfoDTO);
+
 }

@@ -25,13 +25,9 @@ const useUserStore = defineStore(
           const username = loginData.username.trim()
           const password = loginData.password
           const data = await login(username, password)
-          
-          // 成功登录 - 响应拦截器已处理，直接返回token
-          const token = data.token
-          setToken(token)
+
+          // 成功登录 - 存储登录的用户名到 cookie 和 store
           setUserName(username)
-          this.token = token
-          // 存储登录的用户名
           this.name = username
           return data
         } catch (error) {

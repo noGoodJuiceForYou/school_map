@@ -8,6 +8,14 @@
 			"navigationStyle": "custom",
 			"enablePullDownRefresh": false
 		}
+	},
+	{
+		"path" : "pages/auth/auth",
+		"style" : 
+		{
+			"navigationBarTitleText": "登录/注册",
+			"enablePullDownRefresh": false
+		}
 	}
 	],
 	"globalStyle": {

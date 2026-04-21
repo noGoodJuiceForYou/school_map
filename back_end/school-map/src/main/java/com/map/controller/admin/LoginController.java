@@ -21,11 +21,11 @@ public class LoginController {
     @PostMapping("/admin/login")
     public Result login(@RequestBody User user) {
         log.info("登录：{}", user);
-        LoginInfo loginInfo = userService.login(user);
+        LoginInfo loginInfo = userService.loginForM(user);
         if (loginInfo != null) {
             return Result.success(loginInfo);
         }
-        return Result.error("用户名或密码错误");
+        return Result.error("登录失败，可能的原因：1、用户名或密码错误；2、权限不足。");
     }
 
 }

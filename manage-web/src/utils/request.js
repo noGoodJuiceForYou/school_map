@@ -55,12 +55,12 @@ const service = axios.create({
 // request拦截器
 service.interceptors.request.use(config => {
   // 是否需要设置 token
-  const isToken = (config.headers || {}).isToken === false
+  // const isToken = (config.headers || {}).isToken === false
   // 是否需要防止数据重复提交
   const isRepeatSubmit = (config.headers || {}).repeatSubmit === false
-  if (getToken() && !isToken) {
-    config.headers['token'] = getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
-  }
+  // if (getToken() && !isToken) {
+  //   config.headers['token'] = getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
+  // }
   // get和delete请求映射params参数
   if ((config.method === 'get' || config.method === 'delete') && config.params) {
     let url = config.url + '?' + tansParams(config.params)
@@ -105,10 +105,10 @@ service.interceptors.request.use(config => {
 
 // 响应拦截器
 service.interceptors.response.use(res => {
-    // 未设置状态码则默认成功状态
-    const code = res.data.code || 200
+    // 获取状态码
+    const code = res.data.code || 0
     // 获取错误信息
-    const msg = errorCode[code] || res.data.msg || errorCode['default']
+    const msg = res.data.msg || errorCode[code] || errorCode['default']
     // 二进制数据则直接返回
     if (res.request.responseType ===  'blob' || res.request.responseType ===  'arraybuffer') {
       return res.data
@@ -132,10 +132,11 @@ service.interceptors.response.use(res => {
     } else if (code === 601) {
       ElMessage({ message: msg, type: 'warning' })
       return Promise.reject(new Error(msg))
-    } else if (code !== 200 && code !== 1) {
-      ElNotification.error({ title: msg })
-      return Promise.reject('error')
+    } else if (code !== 1) {
+      // 登录失败，返回错误信息
+      return Promise.reject(new Error(msg))
     } else {
+      // 登录成功，返回数据
       return  Promise.resolve(res.data.data)
     }
   },
