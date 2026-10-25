@@ -1,8 +1,10 @@
 import { request } from "@/utils/request.js"
+import mapConfig from "@/config/map.js"
 
-
-
-// 获取地点信息接口
+// 使用用户提供的Key（从配置文件导入）
+export const AMAP_KEY = mapConfig.amap.key;
+// 安全密钥
+export const AMAP_SECURITY_CODE = mapConfig.amap.securityJsCode;
 export function apiGetLocationInfo(id) {
 	return request({
 		url: `/user/location/${id}`,
@@ -29,11 +31,6 @@ export function apiGetLocationList() {
 		method: 'GET'
 	})
 }
-
-// 使用用户提供的Key
-export const AMAP_KEY = 'YOUR_AMAP_KEY';
-// 安全密钥
-export const AMAP_SECURITY_CODE = 'YOUR_AMAP_SECURITY_CODE';
 
 export function apiSearchPlace(data){
 	// 直接使用浏览器端API调用，避免平台不匹配问题

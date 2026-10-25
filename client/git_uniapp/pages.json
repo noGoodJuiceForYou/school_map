@@ -2,7 +2,7 @@
 	
 	"pages": [ 
 	{
-		"path" : "pages/request_other/request_other",
+		"path" : "pages/map/index",
 		"style" : 
 		{
 			"navigationStyle": "custom",

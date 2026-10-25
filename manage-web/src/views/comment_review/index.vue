@@ -1,16 +1,8 @@
 <template>
   <div class="app-container">
-  
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="mini"
-          :disabled="multiple"
-          @click="handleDelete"
-        >删除</el-button>
+        <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="multiple" @click="handleDelete()">删除</el-button>
       </el-col>
       <right-toolbar></right-toolbar>
     </el-row>
@@ -22,16 +14,11 @@
       <el-table-column label="时间" align="center" prop="time" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-delete"
-            @click="handleDelete(scope.row)"
-          >删除</el-button>
+          <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <pagination
       v-show="total>0"
       :total="total"
@@ -42,78 +29,53 @@
   </div>
 </template>
 
-<script>
-import { listReview, deleteReview } from "@/api/system/comment_review"
-import { ElMessageBox, ElMessage } from "element-plus"
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { listReview, deleteReview } from '@/api/system/comment_review'
 
-export default {
-  name: "CommentReview",
-  data() {
-    return {
-      // 遮罩层
-      loading: true,
-      // 选中数组
-      ids: [],
-      // 非单个禁用
-      single: true,
-      // 非多个禁用
-      multiple: true,
-      // 显示搜索条件
-      showSearch: true,
-      // 总条数
-      total: 0,
-      // 评论审核列表
-      reviewList: [],
-      // 查询参数
-      queryParams: {
-        page: 1,
-        pageSize: 10,
-        content: null
-      }
-    }
-  },
-  created() {
-    this.getList()
-  },
-  methods: {
-    /** 查询评论审核列表 */
-    getList() {
-      this.loading = true
-      listReview(this.queryParams).then(data => {
-        this.reviewList = data.records || []
-        this.total = data.total || 0
-        this.loading = false
-      }).catch(error => {
-        this.reviewList = []
-        this.total = 0
-        this.loading = false
-        ElMessage.error('查询失败：' + (error.message || '未知错误'))
-      })
-    },
-    // 多选框选中数据
-    handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.id)
-      this.single = selection.length!==1
-      this.multiple = !selection.length
-    },
-    /** 删除按钮操作 */
-    handleDelete(row) {
-      // 确保传递的是数组
-      const ids = row.id ? [row.id] : this.ids
-      ElMessageBox.confirm('确定要删除这条评论吗？').then(() => {
-        return deleteReview(ids)
-      }).then(() => {
-        this.getList()
-        ElMessage.success("删除成功")
-      }).catch(error => {
-        if (error !== 'cancel') {
-          ElMessage.error('删除失败：' + (error.message || '未知错误'))
-        }
-      })
-    }
-  }
+defineOptions({ name: 'CommentReview' })
+
+const loading = ref(true)
+const total = ref(0)
+const reviewList = ref([])
+const ids = ref([])
+const single = ref(true)
+const multiple = ref(true)
+
+const queryParams = reactive({ page: 1, pageSize: 10, content: null })
+
+function getList() {
+  loading.value = true
+  listReview(queryParams).then(data => {
+    reviewList.value = data.records || []
+    total.value = data.total || 0
+    loading.value = false
+  }).catch(error => {
+    reviewList.value = []
+    total.value = 0
+    loading.value = false
+    ElMessage.error('查询失败：' + (error.message || '未知错误'))
+  })
 }
-</script>
 
-<style scoped>
-</style>
+function handleSelectionChange(selection) {
+  ids.value = selection.map(item => item.id)
+  single.value = selection.length !== 1
+  multiple.value = !selection.length
+}
+
+function handleDelete(row) {
+  const delIds = row?.id ? [row.id] : ids.value
+  ElMessageBox.confirm('确定要删除这条评论吗？').then(() => {
+    return deleteReview(delIds)
+  }).then(() => {
+    getList()
+    ElMessage.success('删除成功')
+  }).catch(error => {
+    if (error !== 'cancel') ElMessage.error('删除失败：' + (error.message || '未知错误'))
+  })
+}
+
+onMounted(() => { getList() })
+</script>

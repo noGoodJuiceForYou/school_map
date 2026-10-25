@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+unpackage/
+target/
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+# 真实后端配置（含数据库密码 / OSS 密钥），使用 application.example.yml 作模板
+back_end/school-map/src/main/resources/application.yml
+
+# OS
+Thumbs.db

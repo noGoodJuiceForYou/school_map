@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import router from '@/router'
 import { ElMessageBox } from 'element-plus'
-import { login, getInfo } from '@/api/login'
+import { login } from '@/api/login'
 import { getToken, setToken, removeToken, getUserName, setUserName, removeUserName } from '@/utils/auth'
 import { isEmpty } from "@/utils/validate"
 import defAva from '@/assets/images/profile.jpg'
