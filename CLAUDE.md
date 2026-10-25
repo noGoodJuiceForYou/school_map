@@ -98,6 +98,7 @@ A SQL dump is available at `_localhost-2026_04_21_23_54_25-dump.sql` in the repo
 
 ## Important Notes
 
+- The canonical remote is GitHub (`git@github.com:noGoodJuiceForYou/school_map.git`). The old Gitee mirror is deprecated — do not push to it.
 - When developing locally, the client's `utils/request.js` base URL and `manifest.json` proxy settings must point to the running backend (default: `http://localhost:8080`).
 - CORS is configured for `localhost:8081`, `localhost:5173-5175`, and the production domain `xujcmap.top`.
 - Secrets are **not** committed. Copy the templates and fill in real values:
