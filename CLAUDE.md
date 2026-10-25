@@ -99,6 +99,8 @@ A SQL dump is available at `_localhost-2026_04_21_23_54_25-dump.sql` in the repo
 ## Important Notes
 
 - When developing locally, the client's `utils/request.js` base URL and `manifest.json` proxy settings must point to the running backend (default: `http://localhost:8080`).
-- The backend root password in `application.yml` is environment-specific — change it to match your local MySQL.
 - CORS is configured for `localhost:8081`, `localhost:5173-5175`, and the production domain `xujcmap.top`.
-- API keys in config files (Amap key, DashScope api-key, OSS credentials, Coze bot token) are sensitive and should not be committed to public repos.
+- Secrets are **not** committed. Copy the templates and fill in real values:
+  - Backend: `back_end/school-map/src/main/resources/application.example.yml` → `application.yml` (git-ignored). Values may also come from env vars (`DASHSCOPE_API_KEY`, `DB_USERNAME`, `DB_PASSWORD`, `OSS_BUCKET_NAME`, `OSS_ENDPOINT`, `OSS_ACCESS_KEY_ID`, `OSS_ACCESS_KEY_SECRET`).
+  - Client: `client/git_uniapp/.env.example` → `.env` (`VITE_AMAP_KEY`, `VITE_AMAP_SECURITY_CODE`, `VITE_COZE_TOKEN`). Amap is loaded dynamically in `main.js`.
+  - Admin: `manage-web/.env.example` → `.env.local` (`VITE_AMAP_KEY`, `VITE_AMAP_SECURITY_CODE`).
