@@ -22,6 +22,8 @@
     <script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.20/libs/cn/index.js"></script>
     <script>
       let chatClient = null;
+      // token 由父页面通过 ?token= 传入，避免在源码中硬编码
+      const COZE_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
 
       window.onload = function() {
         chatClient = new CozeWebSDK.WebChatClient({
@@ -34,9 +36,9 @@
           },
           auth: {
             type: 'token',
-            token: 'YOUR_COZE_TOKEN',
+            token: COZE_TOKEN,
             onRefreshToken: function() {
-              return 'YOUR_COZE_TOKEN'
+              return COZE_TOKEN
             }
           },
           ui: {

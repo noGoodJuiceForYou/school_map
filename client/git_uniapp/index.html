@@ -5,11 +5,11 @@
     <!-- 高德地图安全密钥配置 -->
     <script type="text/javascript">
         window._AMapSecurityConfig = {
-            securityJsCode: "YOUR_AMAP_SECURITY_CODE"
+            securityJsCode: "%VITE_AMAP_SECURITY_CODE%"
         };
     </script>
-    <!-- 直接引入高德地图API，确保在页面加载时就开始加载 -->
-    <script src="https://webapi.amap.com/maps?v=2.0&key=YOUR_AMAP_KEY&plugins=AMap.SimpleMarker"></script>
+    <!-- 直接引入高德地图API，确保在页面加载时就开始加载（key 来自 .env 的 VITE_AMAP_KEY） -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=%VITE_AMAP_KEY%&plugins=AMap.SimpleMarker"></script>
     <script>
         // 动态加载路径规划插件
         function loadMapPlugins() {

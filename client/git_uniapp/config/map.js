@@ -1,9 +1,10 @@
 // 地图配置文件
+// 高德 key 从 .env 读取（参考 .env.example），不要写死在代码里
 export default {
   // 高德地图 JS API 配置
   amap: {
-    key: 'YOUR_AMAP_KEY', // 高德地图API key
-    securityJsCode: 'YOUR_AMAP_SECURITY_CODE', // 安全密钥
+    key: import.meta.env.VITE_AMAP_KEY || '',
+    securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE || '',
     version: '2.0',
     plugins: ['AMap.Walking', 'AMap.Riding', 'AMap.Driving']
   },

@@ -89,9 +89,9 @@
           },
           auth: {
             type: 'token',
-            token: 'YOUR_COZE_TOKEN',
+            token: import.meta.env.VITE_COZE_TOKEN || '',
             onRefreshToken: function() {
-              return 'YOUR_COZE_TOKEN'
+              return import.meta.env.VITE_COZE_TOKEN || ''
             }
           },
           ui: {

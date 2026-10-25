@@ -18,8 +18,8 @@ logs/
 
 # Env / secrets
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
 # 真实后端配置（含数据库密码 / OSS 密钥），使用 application.example.yml 作模板
 back_end/school-map/src/main/resources/application.yml
 

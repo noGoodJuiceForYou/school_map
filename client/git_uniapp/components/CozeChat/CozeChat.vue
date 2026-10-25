@@ -8,7 +8,7 @@
     </view>
     <iframe
       class="coze-iframe"
-      src="/static/coze-chat.html"
+      :src="iframeSrc"
       frameborder="0"
       allow="microphone; camera"
     ></iframe>
@@ -16,10 +16,18 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 defineProps({
   show: { type: Boolean, default: false },
 })
 defineEmits(['close'])
+
+// token 从 .env 的 VITE_COZE_TOKEN 注入，再通过 query 传给 iframe
+const iframeSrc = computed(() => {
+  const token = import.meta.env.VITE_COZE_TOKEN || ''
+  return `/static/coze-chat.html?token=${encodeURIComponent(token)}`
+})
 </script>
 
 <style lang="scss">
